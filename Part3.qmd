@@ -1,0 +1,44 @@
+```{r}
+library(tidyverse)
+```
+
+# Importing Democracy Data from Git Hub.
+
+```{r}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+```
+
+## summary on:
+
+**Proportion of country years (1950-2020) with a female leader within each regime, country, election system**
+```{r}
+sum_female_leader <- function(democ_data, columns, group){ 
+    
+    female_leader_any <- democ_data |> 
+        rowwise() |>    # Selects the rows as groups to check over each year
+        mutate(female_leader = any(c_across(all_of(columns)), na.rm = TRUE)) |>
+                        # Checks across defined columns for a female leader
+        ungroup()       # Undoes rowwise() grouping
+    
+    prop_female <- female_leader_any |> 
+        group_by(across(all_of(group))) |>  # Grouped by group = argument
+        summarise(prop_female_leader = mean(female_leader, na.rm = TRUE))
+                        # mean of TRUE/FALSE for the proportion 
+
+    return(prop_female) # returns the group argument and the proportion
+}
+
+sum_female_leader(democracy_data, 
+                     columns = c("is_female_monarch", "is_female_president"), 
+                     group = "country_name")
+
+sum_female_leader(democracy_data, 
+                     columns = c("is_female_monarch", "is_female_president"), 
+                     group = "regime_category")
+
+sum_female_leader(democracy_data, 
+                     columns = c("is_female_monarch", "is_female_president"), 
+                     group = "election_system")
+```
+Female_leader is a constructed variable for type of leader monarch and president. It is a logical for each row and weither there is a female leader or not. 
+
