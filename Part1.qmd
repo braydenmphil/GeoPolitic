@@ -1,0 +1,39 @@
+---
+title: "Part 1"
+format: html
+---
+```{r, message=FALSE}
+library(tidyverse)
+library(purrr)
+```
+## Importing Democracy Data from Github
+```{r, message=FALSE}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+```
+
+## Summary on: What countries have the most regime changes over time? 
+
+```{r}
+count_regime_changes<-function(country){
+  country_data<-democracy_data |> 
+    filter(country_name==country)|> # Filters so data is only inputed country
+    arrange(year) # Sorts data from earliest year to most recent year
+  
+regime<-country_data$regime_category_index
+
+# Creates a vector that returns true when regime has been changed from previous year
+changes<- regime != lag(regime) 
+
+sum(changes, na.rm=TRUE) # Sum the amount of times the regime has changed
+
+}
+
+results<- democracy_data |>
+  distinct(country_name) |> # Keeps only unique country names
+  mutate(n_changes=map_dbl(
+    country_name,count_regime_changes
+    )) # Runs the function on each country and counts the number of changes
+  
+results |> slice_max(n_changes,n=10)
+
+```
