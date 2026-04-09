@@ -1,0 +1,47 @@
+---
+title: "Part2"
+format: html
+---
+```{r, message=FALSE}
+library(tidyverse)
+library(purrr)
+```
+
+## Importing Democracy Data from Github
+```{r, message=FALSE}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+```
+
+## Summary on: How often do countries have full suffrage when they are democratic?
+```{r}
+prop_suffrage_dem <- function(country) {
+  democracy_data |>
+    filter( # Keeps the years where the selected country is a democracy
+      country_name == country,
+      is_democracy == TRUE 
+    ) |>
+    # Computes the proportion of democratic years with full suffrage
+    summarise(prop_suffrage = mean(has_full_suffrage, na.rm = TRUE)) |>
+    # Extracts value so function returns numeric result
+    pull(prop_suffrage)
+}
+ 
+# Top 10 
+democracy_data |>
+  distinct(country_name) |>
+  mutate(
+    prop_suffrage = map_dbl(country_name, prop_suffrage_dem)
+  ) |>
+  slice_max(prop_suffrage, n = 10)
+
+# Bottom 10
+democracy_data |>
+  distinct(country_name) |>
+  mutate(
+    prop_suffrage = map_dbl(country_name, prop_suffrage_dem)
+  ) |>
+  slice_min(prop_suffrage, n = 10)
+  
+```
+
+Each number represents the proportion of democractic years where the country had full sufferage.
