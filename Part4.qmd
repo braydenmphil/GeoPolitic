@@ -9,7 +9,7 @@ library(purrr)
 ```
 
 ## Importing Democracy Data from Github
-```{r}
+```{r, message=FALSE}
 democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
 
 ```
@@ -46,4 +46,4 @@ ggplot(stability_data[1:3, ],
   ) +
   theme_minimal()
 ```
-
+Guinea-Bissau, Bangladesh, and Thailand exhibit the highest frequencies of regime change, indicating they are among the least politically stable countries in the dataset.
