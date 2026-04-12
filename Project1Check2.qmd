@@ -1,0 +1,157 @@
+---
+title: "Project 1 Checkpoint 2"
+format: html
+author: Braden O'Donnell, Brayden Philabaum, Grayson Six
+---
+
+## Load in necessary libraries
+
+```{r, message=FALSE}
+library(tidyverse)
+library(purrr)
+```
+
+## Importing Democracy Data from Github
+
+```{r, message=FALSE}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+```
+
+# Part 1
+
+## Summary on: What countries have the most regime changes over time?
+
+```{r}
+count_regime_changes<-function(country){
+  country_data<-democracy_data |> 
+    filter(country_name==country)|> # Filters so data is only inputed country
+    arrange(year) # Sorts data from earliest year to most recent year
+  
+regime<-country_data$regime_category_index
+
+# Creates a vector that returns true when regime has been changed from previous year
+changes<- regime != lag(regime) 
+
+sum(changes, na.rm=TRUE) # Sum the amount of times the regime has changed
+
+}
+
+results<- democracy_data |>
+  distinct(country_name) |> # Keeps only unique country names
+  mutate(n_changes=map_dbl(
+    country_name,count_regime_changes
+    )) # Runs the function on each country and counts the number of changes
+  
+results |> slice_max(n_changes,n=10)
+
+```
+
+# Part 2
+
+## Summary on: How often do countries have full suffrage when they are democratic?
+
+```{r}
+prop_suffrage_dem <- function(country) {
+  democracy_data |>
+    filter( # Keeps the years where the selected country is a democracy
+      country_name == country,
+      is_democracy == TRUE 
+    ) |>
+    # Computes the proportion of democratic years with full suffrage
+    summarise(prop_suffrage = mean(has_full_suffrage, na.rm = TRUE)) |>
+    # Extracts value so function returns numeric result
+    pull(prop_suffrage)
+}
+ 
+# Top 10 
+democracy_data |>
+  distinct(country_name) |>
+  mutate(
+    prop_suffrage = map_dbl(country_name, prop_suffrage_dem)
+  ) |>
+  slice_max(prop_suffrage, n = 10)
+
+# Bottom 10
+democracy_data |>
+  distinct(country_name) |>
+  mutate(
+    prop_suffrage = map_dbl(country_name, prop_suffrage_dem)
+  ) |>
+  slice_min(prop_suffrage, n = 10)
+  
+```
+
+Each number represents the proportion of democractic years where the country had full suffrage.
+
+# Part 3
+
+## Summary on: **Proportion of country years (1950-2020) with a female leader within each regime, country, election system**
+
+```{r}
+sum_female_leader <- function(democ_data, columns, group){ 
+    
+    female_leader_any <- democ_data |> 
+        rowwise() |>    # Selects the rows as groups to check over each year
+        mutate(female_leader = any(c_across(all_of(columns)), na.rm = TRUE)) |>
+                        # Checks across defined columns for a female leader
+        ungroup()       # Undoes rowwise() grouping
+    
+    prop_female <- female_leader_any |> 
+        group_by(across(all_of(group))) |>  # Grouped by group = argument
+        summarise(prop_female_leader = mean(female_leader, na.rm = TRUE))
+                        # mean of TRUE/FALSE for the proportion 
+
+    return(prop_female) # returns the group argument and the proportion
+}
+
+sum_female_leader(democracy_data, 
+                     columns = c("is_female_monarch", "is_female_president"), 
+                     group = "country_name")
+
+sum_female_leader(democracy_data, 
+                     columns = c("is_female_monarch", "is_female_president"), 
+                     group = "regime_category")
+
+sum_female_leader(democracy_data, 
+                     columns = c("is_female_monarch", "is_female_president"), 
+                     group = "election_system")
+```
+
+Female_leader is a constructed variable for type of leader monarch and president. It is a logical for each row and either there is a female leader or not.
+
+# Part 4
+
+## Summary on: **Which countries have the least stable governments, measured by the frequency of regime changes?**
+
+```{r}
+#regime_stability creates a variable avg_reg_change that reports the avg regime changes per yer for that country
+regime_stability <- function(country, data = democracy_data){
+  result <- data |>
+    filter(country_name == country) |>
+    arrange(year) |>
+    mutate(
+      change = regime_category_index != lag(regime_category_index) # creates logical variable change
+    ) |>
+    summarise(avg_reg_change = mean(change, na.rm = TRUE))
+  
+  return(result$avg_reg_change)
+}
+
+stability_data <- democracy_data |>
+  distinct(country_name) |>
+  mutate(avg_reg_change = map_dbl(country_name,regime_stability)) |>
+  arrange(desc(avg_reg_change))
+
+
+ggplot(stability_data[1:3, ], 
+       aes(x = reorder(country_name, -avg_reg_change), y = avg_reg_change)) +
+  geom_bar(stat = "identity", fill = "dodgerblue") +
+    labs(
+    title = "Least Stable Countries by Regime Change Frequency",
+    x = "Country",
+    y = "Average Proportion of Years with Regime Change"
+  ) +
+  theme_minimal()
+```
+
+Guinea-Bissau, Bangladesh, and Thailand exhibit the highest frequencies of regime change, indicating they are among the least politically stable countries in the data set.
