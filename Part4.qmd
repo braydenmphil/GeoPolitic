@@ -1,7 +1,4 @@
----
-title: "Part4"
-format: html
----
+## Load in necessary libraries
 
 ```{r, message=FALSE}
 library(tidyverse)
@@ -9,41 +6,50 @@ library(purrr)
 ```
 
 ## Importing Democracy Data from Github
+
 ```{r, message=FALSE}
 democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
-
 ```
-##summary on:
 
-**Which countries have the least stable governments, measured by the frequency of regime changes?**
+## Describing the context of the data
+This data has information on regimes of countries from 1950 to 2022. This includes what type of government the country has, who the ruler is, if they have fair and free elections, and tons of more information.
+
+## Data Cleaning
+There has been a fair amount of data cleaning done to the set. This includes renaming the variables, turning placeholder data (e.g. ?) into missing values, and splitting a month/year field into two separate variables.
+
+# Part 4
+
+## Summary on: Which countries have the highest proportion of postponed elections over time?
+
 ```{r}
-#regime_stability creates a variable avg_reg_change that reports the avg regime changes per yer for that country
-regime_stability <- function(country, data = democracy_data){
+# postponed_elections creates a variable prop_postponed that reports the
+# proportion of years with postponed elections for each country
+postponed_elections <- function(country, data = democracy_data){
   result <- data |>
     filter(country_name == country) |>
     arrange(year) |>
     mutate(
-      change = regime_category_index != lag(regime_category_index) # creates logical variable change
+      postponed = has_postponed_election == TRUE
     ) |>
-    summarise(avg_reg_change = mean(change, na.rm = TRUE))
+    summarise(prop_postponed = mean(postponed, na.rm = TRUE))
   
-  return(result$avg_reg_change)
+  return(result$prop_postponed)
 }
 
-stability_data <- democracy_data |>
+postponed_data <- democracy_data |>
   distinct(country_name) |>
-  mutate(avg_reg_change = map_dbl(country_name,regime_stability)) |>
-  arrange(desc(avg_reg_change))
+  mutate(prop_postponed = map_dbl(country_name, postponed_elections)) |>
+  arrange(desc(prop_postponed))
 
-
-ggplot(stability_data[1:3, ], 
-       aes(x = reorder(country_name, -avg_reg_change), y = avg_reg_change)) +
+ggplot(postponed_data[1:10, ], 
+       aes(x = reorder(country_name, -prop_postponed), y = prop_postponed)) +
   geom_bar(stat = "identity", fill = "dodgerblue") +
-    labs(
-    title = "Least Stable Countries by Regime Change Frequency",
+  labs(
+    title = "Countries with the Highest Proportion of Postponed Elections",
     x = "Country",
-    y = "Average Proportion of Years with Regime Change"
+    y = "Proportion of Years with Postponed Elections"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
-Guinea-Bissau, Bangladesh, and Thailand exhibit the highest frequencies of regime change, indicating they are among the least politically stable countries in the dataset.
