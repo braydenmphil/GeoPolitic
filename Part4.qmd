@@ -1,0 +1,49 @@
+---
+title: "Part4"
+format: html
+---
+
+```{r, message=FALSE}
+library(tidyverse)
+library(purrr)
+```
+
+## Importing Democracy Data from Github
+```{r}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+
+```
+##summary on:
+
+**Which countries have the least stable governments, measured by the frequency of regime changes?**
+```{r}
+#regime_stability creates a variable avg_reg_change that reports the avg regime changes per yer for that country
+regime_stability <- function(country, data = democracy_data){
+  result <- data |>
+    filter(country_name == country) |>
+    arrange(year) |>
+    mutate(
+      change = regime_category_index != lag(regime_category_index) # creates logical variable change
+    ) |>
+    summarise(avg_reg_change = mean(change, na.rm = TRUE))
+  
+  return(result$avg_reg_change)
+}
+
+stability_data <- democracy_data |>
+  distinct(country_name) |>
+  mutate(avg_reg_change = map_dbl(country_name,regime_stability)) |>
+  arrange(desc(avg_reg_change))
+
+
+ggplot(stability_data[1:3, ], 
+       aes(x = reorder(country_name, -avg_reg_change), y = avg_reg_change)) +
+  geom_bar(stat = "identity", fill = "dodgerblue") +
+    labs(
+    title = "Least Stable Countries by Regime Change Frequency",
+    x = "Country",
+    y = "Average Proportion of Years with Regime Change"
+  ) +
+  theme_minimal()
+```
+
