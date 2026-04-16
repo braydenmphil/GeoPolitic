@@ -1,0 +1,85 @@
+---
+title: "API_GDP_Country"
+format: html
+---
+
+```{r}
+#| echo: false
+library(httr)
+library(tidyjson)
+library(jsonlite)
+library(tidyverse)
+library(glue)
+```
+
+
+```{r}
+#| eval: false
+my_key <- "2l9p0QCuI83sXpE84VFghelspfOYk2nVIdTzVvcN"
+```
+
+```{r}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+# Importing the data
+
+country_code <- democracy_data |> 
+    distinct(
+        country_code
+        ) |> 
+    pull(country_code)
+# Extracting the Country Codes 
+
+ usa_df <- democracy_data |>
+    filter(country_code == "USA")
+ # Taking only USA
+
+```
+
+```{r}
+get_gdp <- function(country, key = my_key){
+    
+    url <- glue("https://api.api-ninjas.com/v1/gdp?country={country};X-Api-Key={key}")
+    # My Url for API GDP data
+    
+    my_data <- safely(fromJSON)(url)
+    # Safely to grab data regardless errors
+    
+    if (is.null(my_data$result)) {
+        return(NA)
+    } else {
+        return(my_data$result)
+    }
+    # Procaution against missing Countries. 
+    
+}
+get_gdp("USA")
+# Test 
+
+country_gdp <- map(country_code, get_gdp) 
+# All data for each distinct country in my Democracy data set
+
+```
+
+```{r}
+country_gdp_df <- country_gdp |>
+    setNames(country_code
+             ) |> 
+    bind_rows(
+        .id = "country_code"
+    )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

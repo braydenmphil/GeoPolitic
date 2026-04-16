@@ -116,6 +116,7 @@ sum_female_leader(democracy_data,
                      columns = c("is_female_monarch", "is_female_president"), 
                      group = "election_system")
 ```
+graph gdp over years with female leader 
 
 Female_leader is a constructed variable for type of leader monarch and president. It is a logical for each row and either there is a female leader or not.
 
