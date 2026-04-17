@@ -1,0 +1,30 @@
+---
+title: "CombingingData"
+format: html
+---
+```{r, message=FALSE}
+library(tidyverse)
+```
+
+```{r}
+# Democracy data
+democracy_data<-readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+# GDP data
+gdpData <- read.csv("Country_GDP.csv")
+
+# Employment data
+employData<-read.csv("employ2.csv")
+
+#Combining the two data sets found through API's
+combined <- left_join(
+  gdpData,
+  employData,
+  by = c("year", "country"),
+  relationship = "many-to-many"
+)
+# Combining with orginal democracy_data 
+masterSet<-left_join(democracy_data, combined, by=c('country_code','year'))
+
+write_csv(masterSet,file="masterSet.csv")
+
+```
