@@ -127,7 +127,17 @@ Female_leader is a constructed variable for type of leader monarch and president
 ```{r}
 # postponed_elections creates a variable prop_postponed that reports the
 # proportion of years with postponed elections for each country
-postponed_elections <- function(country, data = democracy_data){
+postponed_elections <- function(country, data =
+```
+
+
+```{r}
+democracy_data
+```
+
+
+```{r}
+){
   result <- data |>
     filter(country_name == country) |>
     arrange(year) |>
