@@ -1,0 +1,51 @@
+---
+title: "ProjectCheckpoint3Grayson"
+format: html
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+masterSet<-read.csv("masterSet.csv")
+```
+
+Visualizing the relationship between GDP growth and if a country is a democracy, over time. 
+
+```{r}
+aveGrowth <- masterSet %>%
+  group_by(year, is_democracy) %>%
+  summarise(mean_growth = mean(gdp_growth, na.rm = TRUE), .groups = "drop") %>% 
+  filter(!is.na(mean_growth), !is.na(is_democracy))
+  
+ggplot(aveGrowth, aes(x=year,y=mean_growth,color=is_democracy))+
+  geom_line(linewidth = 1)+
+  labs(x="Year",
+       y="Average Growth in GDP (%)",
+       title="Mean Growth in GDP for Democracies vs. Non-Democracies",
+       color="Is Democracy")+
+  scale_color_manual(
+  values = c("TRUE" = "blue", "FALSE" = "red"),
+  labels = c("FALSE" = "Non-democracy", "TRUE" = "Democracy")
+)
+  
+```
+
+Visualizing the change in unemployment rate over time for countries that are communist vs. are not communist. 
+
+```{r}
+aveRate<- masterSet %>% 
+  group_by(year, is_communist) %>% 
+  summarise(mean_rate = mean(unemployment_rate,na.rm=TRUE, .groups='drop')) %>% 
+  filter(!is.na(mean_rate), !is.na(year))
+
+ggplot(aveRate, aes(x=year,y=mean_rate,color=is_communist))+
+  geom_line(linewidth=1)+
+  labs(x ="Year",y ="Average Unemployment Rate (%)", title = "Mean Change in Unemployment Rate for Communist vs Non-Communist Countries")+
+  scale_color_manual(
+  values = c("TRUE" = "blue", "FALSE" = "red"),
+  labels = c("FALSE" = "Not Communist", "TRUE" = "Communist")
+)
+
+```
