@@ -1,0 +1,207 @@
+---
+title: "Project 1 Checkpoint 3"
+format: html
+embed-resources: true
+editor: source
+execute: 
+  echo: true
+  error: true
+---
+
+
+```{r}
+#| label: packages-setup
+#| message: false
+#| warning: false
+
+library(httr)
+library(tidyjson)
+library(jsonlite)
+library(tidyverse)
+library(glue)
+```
+
+##Gathering GDP Data
+I used the API listed for the Country GDP over a set number of years, I built a function to iterate over all of the country 3 letter alpha codes to pull all of their GDP data. After I had all of the GDP data for the countries in my democracy dataset, I used a bind rows by country_code as the id to create one large data frame.
+
+```{r}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+# Importing the data
+
+country_code <- democracy_data |> 
+    distinct(
+        country_code
+        ) |> 
+    pull(country_code)
+# Extracting the Country Codes 
+
+ usa_df <- democracy_data |>
+    filter(country_code == "USA")
+ # Taking only USA
+
+```
+
+```{r}
+get_gdp <- function(country, key = my_key){
+    
+    url <- glue("https://api.api-ninjas.com/v1/gdp?country={country};X-Api-Key={key}")
+    # My Url for API GDP data
+    
+    my_data <- safely(fromJSON)(url)
+    # Safely to grab data regardless errors
+    
+    if (is.null(my_data$result)) {
+        return(NA)
+    } else {
+        return(my_data$result)
+    }
+    # Procaution against missing Countries. 
+    
+}
+get_gdp("USA")
+# Test 
+
+country_gdp <- map(country_code, get_gdp) 
+# All data for each distinct country in my Democracy data set
+
+```
+
+```{r}
+country_gdp_df <- country_gdp |>
+    setNames(country_code
+             ) |> 
+    bind_rows(
+        .id = "country_code"
+    )
+```
+
+##Gathing Unemployment Datas
+I used the API listed for the Unemployment Data over a set number of years, I built a function to iterate over all of the country 3 letter alpha codes to pull all of their GDP data. After I had all of the Unemployement data for the countries in my democracy dataset, I used a bind rows by country_code as the id to create one large data frame.
+
+```{r}
+country = "CAN"
+baseurl = "https://api.api-ninjas.com/v1/unemployment?country="
+can_url = glue("{baseurl}{country};X-Api-Key={key}")
+
+can_data = fromJSON(can_url)
+```
+
+```{r}
+funky_Employ <- function(country_code){
+  baseurl = "https://api.api-ninjas.com/v1/unemployment?country="
+  url = glue("{baseurl}{country_code};X-Api-Key={key}")
+  employ_data = fromJSON(url)
+  return(employ_data)
+}
+can_data <- funky_Employ(country)
+```
+
+```{r}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+democ_countrycode <- democracy_data |>
+  select(country_code) |>
+  distinct(country_code) |>
+  pull(country_code)
+```
+
+```{r}
+employ <- map(democ_countrycode, funky_Employ)
+#employ2 <- map_dfr(democ_countrycode, funky_Employ)
+write.csv(employ2, "employ2.csv", row.names = FALSE)
+employ <- read.csv("employ2.csv")
+#4543 rows
+employ |> 
+  distinct(country_code) |>
+  count()
+#110 countries in this 
+
+names(employ) <- c("country_code", "year", "unemployment_rate")
+
+#check for duplicate countries & years
+democracy_data |>
+  count(country_code, year) |>
+  filter(n > 1)
+
+employ |>
+  add_count(country_code, year) |>
+  filter(n > 1)
+#shows that there are 40 country code duplicates
+employ<- employ |>
+  distinct()
+
+employ_democracy_data <- democracy_data |>
+  left_join(employ, by = c("country_code", "year"))
+
+employ_democracy_data |>
+  summarize(missing_unemployment = sum(is.na(unemployment_rate)))
+#11195 missing values which makes sense because this api only has data for 110 countries and limited years
+
+write.csv(employ_democracy_data, "employ_democracy_data.csv", row.names = FALSE)
+
+```
+##All the Data Combind
+```{r}
+# Democracy data
+democracy_data<-readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+# GDP data
+gdpData <- read.csv("Country_GDP.csv")
+
+# Employment data
+employData<-read.csv("employ2.csv")
+
+#Combining the two data sets found through API's
+combined <- left_join(
+  gdpData,
+  employData,
+  by = c("year", "country"),
+  relationship = "many-to-many"
+)
+# Combining with orginal democracy_data 
+masterSet<-left_join(democracy_data, combined, by=c('country_code','year'))
+
+write_csv(masterSet,file="masterSet.csv")
+
+```
+
+```{r}
+masterSet<-read.csv("masterSet.csv")
+```
+
+##Visualizing the relationship between GDP growth and if a country is a democracy, over time. 
+
+```{r}
+aveGrowth <- masterSet %>%
+  group_by(year, is_democracy) %>%
+  summarise(mean_growth = mean(gdp_growth, na.rm = TRUE), .groups = "drop") %>% 
+  filter(!is.na(mean_growth), !is.na(is_democracy))
+  
+ggplot(aveGrowth, aes(x=year,y=mean_growth,color=is_democracy))+
+  geom_line(linewidth = 1)+
+  labs(x="Year",
+       y="Average Growth in GDP (%)",
+       title="Mean Growth in GDP for Democracies vs. Non-Democracies",
+       color="Is Democracy")+
+  scale_color_manual(
+  values = c("TRUE" = "blue", "FALSE" = "red"),
+  labels = c("FALSE" = "Non-democracy", "TRUE" = "Democracy")
+)
+  
+```
+
+##Visualizing the change in unemployment rate over time for countries that are communist vs. are not communist. 
+
+```{r}
+aveRate<- masterSet %>% 
+  group_by(year, is_communist) %>% 
+  summarise(mean_rate = mean(unemployment_rate,na.rm=TRUE, .groups='drop')) %>% 
+  filter(!is.na(mean_rate), !is.na(year))
+
+ggplot(aveRate, aes(x=year,y=mean_rate,color=is_communist))+
+  geom_line(linewidth=1)+
+  labs(x ="Year",y ="Average Unemployment Rate (%)", title = "Mean Change in Unemployment Rate for Communist vs Non-Communist Countries")+
+  scale_color_manual(
+  values = c("TRUE" = "blue", "FALSE" = "red"),
+  labels = c("FALSE" = "Not Communist", "TRUE" = "Communist")
+)
+
+```
