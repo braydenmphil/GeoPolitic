@@ -1,0 +1,103 @@
+---
+title: "Untitled"
+format: html
+embed-resources: true
+code-fold: true
+theme: 
+---
+
+options in the chunks
+    be smart about it 
+    
+#|: fig-alt: "____" 
+
+```{r}
+library(tidyverse)
+library(ggridges)
+library(scales)
+```
+
+
+```{r}
+masterSet<-read.csv("masterSet.csv")
+
+
+sum_female_leader <- function(democ_data, columns, group){ 
+    
+    female_leader_any <- democ_data |> 
+        rowwise() |>    # Selects the rows as groups to check over each year
+        mutate(female_leader = any(c_across(all_of(columns)), na.rm = TRUE)
+               ) |>
+                        # Checks across defined columns for a female leader
+        ungroup()       # Undoes rowwise() grouping
+    
+    prop_female <- female_leader_any |> 
+        group_by(across(all_of(group))) |>  # Grouped by group = argument
+        summarise(prop_female_leader = mean(female_leader, na.rm = TRUE))
+                
+                        # mean of TRUE/FALSE for the proportion 
+
+    return(prop_female) # returns the group argument and the proportion
+}
+
+female_lead <- sum_female_leader(masterSet, 
+                     columns = c("is_female_monarch", "is_female_president"), 
+                     group = "country_name") |>
+    arrange(-prop_female_leader)
+
+```
+
+\
+```{r}
+female_leader_any <- masterSet |>
+  rowwise() |>
+  mutate(
+    female_leader = any(c_across(c(is_female_monarch, is_female_president)) == 1, na.rm = TRUE)
+  ) |>
+  ungroup()
+
+
+female_leader_any <- female_leader_any |> filter(!is.na(gdp_growth)) 
+
+female_leader_any |> 
+    count(female_leader, year) |>
+    filter(female_leader == TRUE) |>
+    arrange(-n)
+
+
+female_leader_any |>
+    filter(year > 2014) |>
+    mutate(
+    female_leader = if_else(female_leader, "Female leader", "No female leader"),
+    year = factor(year)
+    ) |> 
+ggplot(mapping = aes(x = gdp_growth, y = as.factor(year), fill = female_leader)) +
+    geom_density_ridges(alpha = 0.65,
+                        color = "white",
+                        scale = 0.99,
+                        rel_min_height = 0.01) +
+    scale_x_continuous(limits = c(-15,20), 
+                       breaks = seq(-15,20,5),
+                       labels = label_number(suffix = "%")) +
+    scale_fill_manual(
+        values = c(
+        "No female leader" = "steelblue",
+        "Female leader" = "hotpink"
+    )) +
+    labs(title = "GDP Growth Distributions by Female Leadership Status",
+         subtitle = "Countries grouped by whether they had a female leader, 2015 to 2020",
+         x = "GDP growth rate",
+         y = NULL,
+         fill = NULL) + 
+    theme_ridges(font_size = 13,
+                 grid = TRUE) +
+    theme(
+        legend.position = "top",
+        legend.justification = "left",
+        plot.title = element_text(face = "bold", size = 18),
+        plot.caption = element_text(size = 10, color = "gray40")
+    )
+
+```
+
+
