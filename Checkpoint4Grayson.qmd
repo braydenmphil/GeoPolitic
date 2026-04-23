@@ -1,0 +1,62 @@
+---
+title: "ProjectCheckpoint4Grayson"
+format: html
+embed-resources: true
+code-fold: true
+---
+
+```{r}
+library(countrycode)
+```
+
+
+```{r}
+count_regime_changes_per_year <- function(yr) {
+  democracy_data |>
+    arrange(country_name, year) |>
+    group_by(country_name) |>
+    mutate(regime_changed = regime_category_index != lag(regime_category_index)) |>
+    ungroup() |>
+    filter(year == yr) |>
+    summarise(regime_changes = sum(regime_changed, na.rm = TRUE)) |>
+    pull(regime_changes)
+}
+
+regime_change_counts <- democracy_data |>
+  arrange(country_name, year) |>
+  group_by(country_name) |>
+  mutate(regime_changed = regime_category_index != lag(regime_category_index)) |>
+  ungroup() |>
+  mutate(continent = countrycode::countrycode(country_name,
+                                              origin = "country.name",
+                                              destination = "continent")) |>
+  group_by(continent, year) |>
+  summarise(n_changes = sum(regime_changed, na.rm = TRUE), .groups = "drop") |>
+  group_by(continent) |>
+  mutate(cumulative_changes = cumsum(n_changes)) |>
+  ungroup()
+
+
+
+```
+
+## Visualizing regime changes per continent over time ##
+```{r}
+#| fig-alt: "Graph visualizing the number of regime changes over time per continent"
+
+ggplot(regime_change_counts, mapping = aes(x=year,y = cumulative_changes,
+                                           fill = continent))+
+  geom_area(alpha = 0.3, position = "identity") +
+  geom_line(aes(color = continent))+
+  labs(x = "Year", y= "Cumulative Changes",
+       title = "Number of Regime Changes over Time per Continent ")+
+  theme_minimal()+
+  scale_fill_manual(values = c(
+  "Africa"   = "#E63946",
+  "Americas" = "#F4A261",
+  "Asia"     = "#2A9D8F",
+  "Europe"   = "#457B9D",
+  "Oceania"  = "#9B5DE5"
+))
+  
+```
