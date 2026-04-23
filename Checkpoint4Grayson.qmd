@@ -5,10 +5,15 @@ embed-resources: true
 code-fold: true
 ---
 
-```{r}
+```{r,message=FALSE}
 library(countrycode)
+library(tidyverse)
 ```
 
+```{r, message=FALSE}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv')
+
+```
 
 ```{r}
 count_regime_changes_per_year <- function(yr) {
