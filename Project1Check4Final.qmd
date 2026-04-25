@@ -1,6 +1,8 @@
 ---
 title: "Project1 Check 4 Final"
 format: html
+embed-resources: true
+code-fold: true
 ---
 
 ```{r,message=FALSE}
