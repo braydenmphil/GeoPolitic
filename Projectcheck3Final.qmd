@@ -205,6 +205,5 @@ ggplot(aveRate, aes(x=year,y=mean_rate,color=is_communist))+
 )
 
 ```
-```
 
 
