@@ -1,0 +1,74 @@
+---
+title: "BradenProject2Check4"
+format: html
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+## What are some key factors that are associated with countries' GDPs?
+
+We filtered our data-set to where it has no missing values for gdp,
+unemployment,whether they are a democracy or not and year. We omiited
+the year 2020 to the dataset because this year skewed the data due to
+the pandemic.
+
+```{r}
+masterSet<-read.csv("masterSet.csv")
+
+mastfilt <- masterSet |>
+  dplyr::filter(!is.na(gdp_nominal),
+                !is.na(unemployment_rate),
+                !is.na(year),
+                !is.na(is_democracy),
+                year != 2020)
+```
+
+We created a model to predict a function of GDP (log(GDP)) from the year
+as well as the interaction of unemployment rate and whether that country
+was a democracy or not. We had to use a function of GDP because there
+was abnormalities in the GDP that complicate the model.
+
+\[ \log(\text{GDP}\_i) = \beta\_0 + \beta\_1 ,\text{Unemployment}\_i +
+\beta\_2 ,\text{Democracy}\_i + \beta\_3 ,(\text{Unemployment}\_i
+\times \text{Democracy}\_i) + \beta\_4 ,\text{Year}\_i + \varepsilon\_i
+\]
+
+```{r}
+lmGDP = lm(log(gdp_nominal) ~ unemployment_rate*is_democracy + year, data = mastfilt)
+summary(lmGDP)
+```
+
+```{r}
+mastfilt <- mastfilt |>
+  mutate(
+    preds = exp(predict(lmGDP)))
+```
+Here we are adding the predicted GDP values to the original dataset. 
+
+```{r}
+ggplot(aes(y =log(gdp_nominal), x = unemployment_rate, color = factor(is_democracy)), data = mastfilt) +
+  geom_smooth(method = 'lm', se = F) +
+  geom_point(alpha = 0.1) +
+  labs(
+    x = "Unemployment Rate",
+    y = "Log GDP",
+    color = "Democracy Status",
+    title = "Relationship Between Unemployment and Log GDP by Democracy Status") +
+  scale_color_discrete(
+    labels = c("Non-Democracy", "Democracy"))
+```
+This plot shows the relationship between the interaction of whether a country is democratic or not and the unemployment rate on our function of GDP. We notice a faster drop in our function GDP when a country is democratic and the unemployment rate increases compared to when it is not democratic. 
+```{r}
+ggplot(data = mastfilt, aes(x = year, y = preds)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    x = "Year",
+    y = "Predicted GDP",
+    title = "Predicted GDP Over Time") +
+  theme_minimal()
+```
+This plot demonstrates the relationship between the year and GDP. As the plot demonstrates for every year we notice as increase in GDP which is what we would expect.
+
+
