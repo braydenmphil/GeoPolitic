@@ -172,11 +172,6 @@ as well as the interaction of unemployment rate and whether that country
 was a democracy or not. We had to use a function of GDP because there
 was abnormalities in the GDP that complicate the model.
 
-\[ \log(\text{GDP}\_i) = \beta\_0 + \beta\_1 ,\text{Unemployment}\_i +
-\beta\_2 ,\text{Democracy}\_i + \beta\_3 ,(\text{Unemployment}\_i
-\times \text{Democracy}\_i) + \beta\_4 ,\text{Year}\_i + \varepsilon\_i
-\]
-
 ```{r}
 lmGDP = lm(log(gdp_nominal) ~ unemployment_rate*is_democracy + year, data = mastfilt)
 summary(lmGDP)
