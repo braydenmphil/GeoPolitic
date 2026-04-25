@@ -42,58 +42,58 @@ country_code <- democracy_data |>
 ```
 
 ```{r}
-get_gdp <- function(country, key = my_key){
-    
-    url <- glue("https://api.api-ninjas.com/v1/gdp?country={country};X-Api-Key={key}")
-    # My Url for API GDP data
-    
-    my_data <- safely(fromJSON)(url)
-    # Safely to grab data regardless errors
-    
-    if (is.null(my_data$result)) {
-        return(NA)
-    } else {
-        return(my_data$result)
-    }
+# get_gdp <- function(country, key = my_key){
+#     
+#     url <- glue("https://api.api-ninjas.com/v1/gdp?country={country};X-Api-Key={key}")
+#     # My Url for API GDP data
+#     
+#     my_data <- safely(fromJSON)(url)
+#     # Safely to grab data regardless errors
+#     
+#     if (is.null(my_data$result)) {
+#         return(NA)
+#     } else {
+#         return(my_data$result)
+#     }
     # Procaution against missing Countries. 
     
 }
-get_gdp("USA")
+# get_gdp("USA")
 # Test 
 
-country_gdp <- map(country_code, get_gdp) 
+# country_gdp <- map(country_code, get_gdp) 
 # All data for each distinct country in my Democracy data set
 
 ```
 
 ```{r}
-country_gdp_df <- country_gdp |>
-    setNames(country_code
-             ) |> 
-    bind_rows(
-        .id = "country_code"
-    )
+# country_gdp_df <- country_gdp |>
+#     setNames(country_code
+#              ) |> 
+#     bind_rows(
+#         .id = "country_code"
+#     )
 ```
 
 ##Gathing Unemployment Datas
 I used the API listed for the Unemployment Data over a set number of years, I built a function to iterate over all of the country 3 letter alpha codes to pull all of their GDP data. After I had all of the Unemployement data for the countries in my democracy dataset, I used a bind rows by country_code as the id to create one large data frame.
 
 ```{r}
-country = "CAN"
-baseurl = "https://api.api-ninjas.com/v1/unemployment?country="
-can_url = glue("{baseurl}{country};X-Api-Key={key}")
-
-can_data = fromJSON(can_url)
+# country = "CAN"
+# baseurl = "https://api.api-ninjas.com/v1/unemployment?country="
+# can_url = glue("{baseurl}{country};X-Api-Key={key}")
+# 
+# can_data = fromJSON(can_url)
 ```
 
 ```{r}
-funky_Employ <- function(country_code){
-  baseurl = "https://api.api-ninjas.com/v1/unemployment?country="
-  url = glue("{baseurl}{country_code};X-Api-Key={key}")
-  employ_data = fromJSON(url)
-  return(employ_data)
-}
-can_data <- funky_Employ(country)
+# funky_Employ <- function(country_code){
+#   baseurl = "https://api.api-ninjas.com/v1/unemployment?country="
+#   url = glue("{baseurl}{country_code};X-Api-Key={key}")
+#   employ_data = fromJSON(url)
+#   return(employ_data)
+# }
+# can_data <- funky_Employ(country)
 ```
 
 ```{r}
@@ -205,3 +205,6 @@ ggplot(aveRate, aes(x=year,y=mean_rate,color=is_communist))+
 )
 
 ```
+```
+
+
