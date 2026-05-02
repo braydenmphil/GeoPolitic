@@ -106,7 +106,7 @@ results |>
   ) |>
   tab_caption("Table 1. Top 10 countries by total number of regime changes (1950–2022).") |>
   tab_style(
-    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    style = list(cell_fill(color = "#18bc9c"), cell_text(color = "white", weight = "bold")),
     locations = cells_column_labels()
   ) |>
   tab_style(
@@ -153,7 +153,7 @@ democracy_data |>
   tab_caption("Table 2. Regime change counts by continent, including total changes, average per country, and the most politically unstable country in each region.") |>
   fmt_number(columns = `Average Changes per Country`, decimals = 2) |>
   tab_style(
-    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    style = list(cell_fill(color = "#18bc9c"), cell_text(color = "white", weight = "bold")),
     locations = cells_column_labels()
   ) |>
   tab_style(
@@ -298,7 +298,7 @@ sum_female_leader(
   tab_caption("Table 3. Proportion of country-years with a female leader by regime type.") |>
   fmt_percent(columns = `Proportion with Female Leader`, decimals = 1) |>
   tab_style(
-    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    style = list(cell_fill(color = "#18bc9c"), cell_text(color = "white", weight = "bold")),
     locations = cells_column_labels()
   ) |>
   opt_stylize(style = 1)
@@ -323,7 +323,7 @@ sum_female_leader(
   tab_caption("Table 4. Proportion of country-years with a female leader by election system.") |>
   fmt_percent(columns = `Proportion with Female Leader`, decimals = 1) |>
   tab_style(
-    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    style = list(cell_fill(color = "#18bc9c"), cell_text(color = "white", weight = "bold")),
     locations = cells_column_labels()
   ) |>
   opt_stylize(style = 1)
@@ -475,7 +475,7 @@ broom::tidy(lmGDP) |>
   ) |>
   tab_caption("Table 5. Linear regression model predicting log(Nominal GDP). Coefficients represent the change in log(GDP) for a one-unit increase in each predictor.") |>
   tab_style(
-    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    style = list(cell_fill(color = "#18bc9c"), cell_text(color = "white", weight = "bold")),
     locations = cells_column_labels()
   ) |>
   tab_style(
