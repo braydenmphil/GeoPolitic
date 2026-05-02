@@ -1,0 +1,527 @@
+---
+title: "Democracy Around the World: A Data Analysis"
+format: 
+  html:
+    theme: flatly
+    toc: true
+    toc-depth: 3
+    number-sections: true
+embed-resources: true
+code-fold: true
+---
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(purrr)
+library(countrycode)
+library(ggridges)
+library(scales)
+library(gt)
+```
+
+```{r load-data, message=FALSE}
+democracy_data <- readr::read_csv(
+  'https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-11-05/democracy_data.csv'
+)
+masterSet <- read.csv("masterSet.csv")
+```
+
+# Data Context
+
+## Democracy Dataset
+
+The democracy dataset was published as part of the TidyTuesday project and are from the Boix-Miller-Rosato Dichotomous Coding of Democracy dataset. The data was collected and curated by political scientists to document the political characteristics of countries across the globe.
+
+- Who: The data was compiled by researchers in political science and published via TidyTuesday on GitHub.
+- Where: Each row represents a single country in a single year, covering countries worldwide.
+- When: The dataset covers from 1950 to 2022, giving over 70 years of political history.
+- How: The Data was collected by political scientists through a historical records, expert coding, and cross-referencing of government documents and electoral records.
+- Why: The dataset was created to enable researchers to study patterns in democratization, regime stability, election integrity, and political representation across time and geography.
+
+Key variables include `regime_category_index` (type of government), `is_democracy`, `has_full_suffrage`, `has_postponed_election`, `is_female_president`, `is_female_monarch`, and `election_system`, among many others.
+
+## Supplemental GDP and Unemployment Data
+
+To investigate factors associated with a country's economic performance, we supplemented the democracy dataset with two additional datasets acquired via the API-Ninjas public API:
+
+- **GDP Data (`Country_GDP.csv`):** Contains annual nominal GDP and GDP growth rate (%) by country code and year. Data were collected by querying the API-Ninjas GDP endpoint for each unique country code present in the democracy dataset.
+- **Unemployment Data (`employ2.csv`):** Contains annual unemployment rates (%) by country code and year, retrieved from the API-Ninjas unemployment endpoint using the same iteration approach.
+
+These two datasets were joined to the democracy dataset by `country_code` and `year`, creating a master dataset (`masterSet`) used in the economic analysis sections below. Due to API coverage limitations, not all countries and years have GDP or unemployment data available — approximately 11,195 missing unemployment values remain after joining.
+
+- Who: API-Ninjas averages economic data from sources including the World Bank and IMF.
+- Where: Country-level observations; the same observational unit as the democracy data.
+- When: Coverage varies by country; generally spans from the 1960s through 2022 for most included countries.
+- How: Acquired programmatically using custom R functions that iterated over all distinct country codes and called the relevant API endpoints.
+- Why: GDP and unemployment data allow us to explore the relationship between political regime type and economic outcomes, a central question in comparative political economy.
+
+---
+
+# Research Questions
+
+This report addresses two research questions:
+
+> **Question 1 (Original Data):** How have regime types changed over time across different continents, and which countries have experienced the most political instability?
+
+This question draws exclusively on the democracy dataset, examining regime change counts by country and cumulative changes over time by continent.
+
+> **Question 2 (Supplemental Data):** What key factors — including democracy status, unemployment rate, and female leadership — are associated with a country's GDP?
+
+This question leverages the joined master dataset combining democracy, GDP, and unemployment data, allowing us to model and visualize economic outcomes as a function of political and social variables.
+
+---
+
+# Data Summaries & Visualizations
+
+## Question 1: Regime Changes Over Time
+
+### Summary Tables
+
+#### Countries with the Most Regime Changes
+
+The function below counts the number of times a country changed its regime type between consecutive years, then identifies the top 10 most politically unstable countries over the full dataset period.
+
+```{r regime-change-function}
+count_regime_changes <- function(country) {
+  country_data <- democracy_data |>
+    filter(country_name == country) |>
+    arrange(year)
+
+  regime <- country_data$regime_category_index
+  changes <- regime != lag(regime)
+  sum(changes, na.rm = TRUE)
+}
+
+results <- democracy_data |>
+  distinct(country_name) |>
+  mutate(n_changes = map_dbl(country_name, count_regime_changes))
+
+results |>
+  slice_max(n_changes, n = 10) |>
+  rename(Country = country_name, `Number of Regime Changes` = n_changes) |>
+  gt() |>
+  tab_header(
+    title = "Top 10 Most Politically Unstable Countries",
+    subtitle = "Total regime changes, 1950–2022"
+  ) |>
+  tab_caption("Table 1. Top 10 countries by total number of regime changes (1950–2022).") |>
+  tab_style(
+    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    locations = cells_column_labels()
+  ) |>
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = Country)
+  ) |>
+  opt_stylize(style = 1)
+```
+
+#### Regime Change Counts by Continent
+
+This table summarizes the total and average number of regime changes per continent across the full dataset period, giving a higher-level geographic view of political instability to complement the country-level table above.
+
+```{r regime-continent-table}
+democracy_data |>
+  arrange(country_name, year) |>
+  group_by(country_name) |>
+  mutate(regime_changed = regime_category_index != lag(regime_category_index)) |>
+  ungroup() |>
+  mutate(continent = countrycode::countrycode(
+    country_name,
+    origin = "country.name",
+    destination = "continent"
+  )) |>
+  filter(!is.na(continent)) |>
+  group_by(continent, country_name) |>
+  summarise(country_changes = sum(regime_changed, na.rm = TRUE), .groups = "drop") |>
+  group_by(continent) |>
+  summarise(
+    `Number of Countries` = n(),
+    `Total Regime Changes` = sum(country_changes),
+    `Average Changes per Country` = round(mean(country_changes), 2),
+    `Most Unstable Country` = country_name[which.max(country_changes)],
+    `Max Changes (single country)` = max(country_changes),
+    .groups = "drop"
+  ) |>
+  arrange(desc(`Total Regime Changes`)) |>
+  rename(Continent = continent) |>
+  gt() |>
+  tab_header(
+    title = "Regime Change Counts by Continent",
+    subtitle = "1950–2022"
+  ) |>
+  tab_caption("Table 2. Regime change counts by continent, including total changes, average per country, and the most politically unstable country in each region.") |>
+  fmt_number(columns = `Average Changes per Country`, decimals = 2) |>
+  tab_style(
+    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    locations = cells_column_labels()
+  ) |>
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = Continent)
+  ) |>
+  opt_stylize(style = 1)
+```
+
+### Visualizations
+
+#### Top 10 Countries by Total Regime Changes
+
+```{r top-countries-regime-plot}
+#| fig-alt: "Horizontal bar chart showing the top 10 countries with the most total regime changes between 1950 and 2022. Each bar is colored by continent, allowing readers to see which regions contribute the most politically unstable countries."
+
+results |>
+  slice_max(n_changes, n = 10) |>
+  mutate(continent = countrycode::countrycode(
+    country_name, origin = "country.name", destination = "continent"
+  )) |>
+  ggplot(aes(x = n_changes, y = reorder(country_name, n_changes), fill = continent)) +
+  geom_col() +
+  scale_fill_manual(values = c(
+    "Africa"   = "#E63946",
+    "Americas" = "#F4A261",
+    "Asia"     = "#2A9D8F",
+    "Europe"   = "#457B9D",
+    "Oceania"  = "#9B5DE5"
+  )) +
+  scale_x_continuous(breaks = scales::breaks_pretty()) +
+  labs(
+    title = "Top 10 Most Politically Unstable Countries",
+    subtitle = "Total regime changes, 1950–2022",
+    x = "Number of Regime Changes",
+    y = NULL,
+    fill = "Continent",
+    caption = "Source: Boix-Miller-Rosato Democracy Dataset via TidyTuesday"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+#### Cumulative Regime Changes per Continent Over Time
+
+```{r regime-change-continent-plot}
+#| fig-alt: "Area and line chart showing cumulative regime changes over time from 1950 to 2022, broken out by continent. Africa and Asia show the steepest growth in cumulative changes. Each continent is represented by a distinct color."
+
+regime_change_counts <- democracy_data |>
+  arrange(country_name, year) |>
+  group_by(country_name) |>
+  mutate(regime_changed = regime_category_index != lag(regime_category_index)) |>
+  ungroup() |>
+  mutate(continent = countrycode::countrycode(
+    country_name,
+    origin = "country.name",
+    destination = "continent"
+  )) |>
+  group_by(continent, year) |>
+  summarise(n_changes = sum(regime_changed, na.rm = TRUE), .groups = "drop") |>
+  group_by(continent) |>
+  mutate(cumulative_changes = cumsum(n_changes)) |>
+  ungroup()
+
+ggplot(regime_change_counts,
+       aes(x = year, y = cumulative_changes, fill = continent)) +
+  geom_area(alpha = 0.3, position = "identity") +
+  geom_line(aes(color = continent), linewidth = 0.9) +
+  scale_color_manual(values = c(
+    "Africa"   = "#E63946",
+    "Americas" = "#F4A261",
+    "Asia"     = "#2A9D8F",
+    "Europe"   = "#457B9D",
+    "Oceania"  = "#9B5DE5"
+  )) +
+  scale_fill_manual(values = c(
+    "Africa"   = "#E63946",
+    "Americas" = "#F4A261",
+    "Asia"     = "#2A9D8F",
+    "Europe"   = "#457B9D",
+    "Oceania"  = "#9B5DE5"
+  )) +
+  labs(
+    x = "Year",
+    y = "Cumulative Regime Changes",
+    title = "Cumulative Regime Changes Over Time by Continent",
+    subtitle = "1950–2022",
+    color = "Continent",
+    fill = "Continent",
+    caption = "Source: Boix-Miller-Rosato Democracy Dataset via TidyTuesday"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "right"
+  )
+```
+
+---
+
+## Question 2: Factors Associated with Countries' GDP
+
+### Summary Tables
+
+#### Proportion of Years with a Female Leader by Regime Type and Election System
+
+The function below summarizes the proportion of country-years with a female leader (monarch or president), grouped by a user-specified variable.
+
+```{r female-leader-function}
+sum_female_leader <- function(democ_data, columns, group) {
+  female_leader_any <- democ_data |>
+    rowwise() |>
+    mutate(female_leader = any(c_across(all_of(columns)), na.rm = TRUE)) |>
+    ungroup()
+
+  prop_female <- female_leader_any |>
+    group_by(across(all_of(group))) |>
+    summarise(prop_female_leader = mean(female_leader, na.rm = TRUE),
+              .groups = "drop")
+
+  return(prop_female)
+}
+
+# By regime category
+sum_female_leader(
+  democracy_data,
+  columns = c("is_female_monarch", "is_female_president"),
+  group = "regime_category"
+) |>
+  filter(!is.na(regime_category)) |>
+  arrange(desc(prop_female_leader)) |>
+  rename(`Regime Category` = regime_category,
+         `Proportion with Female Leader` = prop_female_leader) |>
+  gt() |>
+  tab_header(
+    title = "Female Leadership by Regime Type",
+    subtitle = "Proportion of country-years with a female leader"
+  ) |>
+  tab_caption("Table 3. Proportion of country-years with a female leader by regime type.") |>
+  fmt_percent(columns = `Proportion with Female Leader`, decimals = 1) |>
+  tab_style(
+    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    locations = cells_column_labels()
+  ) |>
+  opt_stylize(style = 1)
+```
+
+```{r female-leader-election}
+# By election system
+sum_female_leader(
+  democracy_data,
+  columns = c("is_female_monarch", "is_female_president"),
+  group = "election_system"
+) |>
+  filter(!is.na(election_system)) |>
+  arrange(desc(prop_female_leader)) |>
+  rename(`Election System` = election_system,
+         `Proportion with Female Leader` = prop_female_leader) |>
+  gt() |>
+  tab_header(
+    title = "Female Leadership by Election System",
+    subtitle = "Proportion of country-years with a female leader"
+  ) |>
+  tab_caption("Table 4. Proportion of country-years with a female leader by election system.") |>
+  fmt_percent(columns = `Proportion with Female Leader`, decimals = 1) |>
+  tab_style(
+    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    locations = cells_column_labels()
+  ) |>
+  opt_stylize(style = 1)
+```
+
+### Visualizations
+
+#### GDP Growth: Democracies vs. Non-Democracies Over Time
+
+```{r gdp-democracy-plot}
+#| fig-alt: "Line chart showing average annual GDP growth rate from the 1960s to 2022, separately for democracies (blue) and non-democracies (red). Both groups show similar volatility with spikes around global economic crises."
+
+aveGrowth <- masterSet |>
+  group_by(year, is_democracy) |>
+  summarise(mean_growth = mean(gdp_growth, na.rm = TRUE), .groups = "drop") |>
+  filter(!is.na(mean_growth), !is.na(is_democracy))
+
+ggplot(aveGrowth, aes(x = year, y = mean_growth, color = factor(is_democracy))) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(
+    values = c("FALSE" = "#E63946", "TRUE" = "#2A9D8F"),
+    labels = c("FALSE" = "Non-Democracy", "TRUE" = "Democracy")
+  ) +
+  scale_y_continuous(labels = label_number(suffix = "%")) +
+  labs(
+    x = "Year",
+    y = "Average GDP Growth Rate",
+    title = "Mean GDP Growth Rate: Democracies vs. Non-Democracies",
+    color = NULL,
+    caption = "Source: API-Ninjas GDP Data joined with TidyTuesday Democracy Dataset"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "top"
+  )
+```
+
+#### GDP Growth Distribution by Female Leadership Status (2015–2020)
+
+```{r gdp-female-ridge-plot}
+#| fig-alt: "Ridge plot showing the distribution of GDP growth rates for countries with and without a female leader, for each year from 2015 to 2020. Both groups show broadly similar distributions, though countries with female leaders show slightly different spread in some years."
+
+female_leader_any <- masterSet |>
+  rowwise() |>
+  mutate(
+    female_leader = any(
+      c_across(c(is_female_monarch, is_female_president)) == 1,
+      na.rm = TRUE
+    )
+  ) |>
+  ungroup() |>
+  filter(!is.na(gdp_growth))
+
+female_leader_any |>
+  filter(year > 2014) |>
+  mutate(
+    female_leader = if_else(female_leader, "Female Leader", "No Female Leader"),
+    year = factor(year)
+  ) |>
+  ggplot(aes(x = gdp_growth, y = year, fill = female_leader)) +
+  geom_density_ridges(
+    alpha = 0.65,
+    color = "white",
+    scale = 0.99,
+    rel_min_height = 0.01
+  ) +
+  scale_x_continuous(
+    limits = c(-15, 20),
+    breaks = seq(-15, 20, 5),
+    labels = label_number(suffix = "%")
+  ) +
+  scale_fill_manual(values = c(
+    "No Female Leader" = "#457B9D",
+    "Female Leader"    = "#F4A261"
+  )) +
+  labs(
+    title = "GDP Growth Distributions by Female Leadership Status",
+    subtitle = "Countries grouped by whether they had a female leader, 2015–2020",
+    x = "GDP Growth Rate",
+    y = NULL,
+    fill = NULL,
+    caption = "Source: API-Ninjas GDP Data joined with TidyTuesday Democracy Dataset"
+  ) +
+  theme_ridges(font_size = 13, grid = TRUE) +
+  theme(
+    legend.position = "top",
+    legend.justification = "left",
+    plot.title = element_text(face = "bold", size = 16)
+  )
+```
+
+---
+
+# Data Model
+
+To formally address **Research Question 2**, we fit a linear regression model predicting the **log of nominal GDP** from:
+
+- `year` — to capture economic growth over time
+- `unemployment_rate` — as an economic predictor
+- `is_democracy` — to test whether democratic status affects GDP
+- `unemployment_rate × is_democracy` — an interaction term to test whether the relationship between unemployment and GDP differs between democracies and non-democracies
+
+We used log(GDP) because nominal GDP is highly right-skewed; log-transforming it stabilizes variance and produces more interpretable model coefficients. The year 2020 was excluded due to pandemic-related economic distortions.
+
+```{r model-filter}
+mastfilt <- masterSet |>
+  dplyr::filter(
+    !is.na(gdp_nominal),
+    !is.na(unemployment_rate),
+    !is.na(year),
+    !is.na(is_democracy),
+    year != 2020
+  )
+```
+
+```{r model-fit}
+lmGDP <- lm(log(gdp_nominal) ~ unemployment_rate * is_democracy + year,
+            data = mastfilt)
+summary(lmGDP)
+```
+
+```{r model-table}
+broom::tidy(lmGDP) |>
+  mutate(
+    term = case_when(
+      term == "(Intercept)"                        ~ "Intercept",
+      term == "unemployment_rate"                  ~ "Unemployment Rate",
+      term == "is_democracyTRUE"                   ~ "Is Democracy",
+      term == "year"                               ~ "Year",
+      term == "unemployment_rate:is_democracyTRUE" ~ "Unemployment × Democracy"
+    ),
+    across(c(estimate, std.error, statistic), ~ round(.x, 4)),
+    p.value = case_when(
+      p.value < 0.001 ~ "< 0.001",
+      TRUE ~ as.character(round(p.value, 3))
+    )
+  ) |>
+  rename(
+    Term = term,
+    Estimate = estimate,
+    `Std. Error` = std.error,
+    `t-statistic` = statistic,
+    `p-value` = p.value
+  ) |>
+  gt() |>
+  tab_header(
+    title = "Linear Regression: Predictors of Log(Nominal GDP)"
+  ) |>
+  tab_caption("Table 5. Linear regression model predicting log(Nominal GDP). Coefficients represent the change in log(GDP) for a one-unit increase in each predictor.") |>
+  tab_style(
+    style = list(cell_fill(color = "#ADD8E6"), cell_text(color = "white", weight = "bold")),
+    locations = cells_column_labels()
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#f0faf7"),
+    locations = cells_body(rows = c(3, 5))
+  ) |>
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = Term)
+  ) |>
+  opt_stylize(style = 1)
+```
+
+**Key findings from the model:**
+
+- **Year** has a significant positive coefficient, confirming that GDP has grown over time on average across all countries, regardless of political regime.
+- **Unemployment rate** is negatively associated with log(GDP), as expected — higher unemployment is associated with smaller economies.
+- **Is Democracy** is positively associated with log(GDP), suggesting democratic countries tend to have higher GDPs on average.
+- The **interaction term** (Unemployment × Democracy) is negative and significant, meaning the negative relationship between unemployment and GDP is *stronger* in democracies than in non-democracies. In other words, rising unemployment is more damaging to GDP in democratic countries.
+
+```{r model-plot}
+#| fig-alt: "Scatter plot with regression lines showing the relationship between unemployment rate and log GDP, separately for democracies (teal) and non-democracies (red). The regression line for democracies has a steeper negative slope, indicating unemployment is more negatively associated with GDP in democratic countries."
+
+mastfilt <- mastfilt |>
+  mutate(preds = exp(predict(lmGDP)))
+
+ggplot(
+  aes(y = log(gdp_nominal), x = unemployment_rate, color = factor(is_democracy)),
+  data = mastfilt
+) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1.2) +
+  scale_color_manual(
+    values = c("FALSE" = "#E63946", "TRUE" = "#2A9D8F"),
+    labels = c("FALSE" = "Non-Democracy", "TRUE" = "Democracy")
+  ) +
+  labs(
+    x = "Unemployment Rate (%)",
+    y = "Log(Nominal GDP)",
+    color = "Regime Type",
+    title = "Relationship Between Unemployment and Log GDP by Democracy Status",
+    caption = "Source: API-Ninjas GDP & Unemployment Data joined with TidyTuesday Democracy Dataset"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "top"
+  )
+```
