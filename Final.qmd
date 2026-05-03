@@ -28,34 +28,19 @@ masterSet <- read.csv("masterSet.csv")
 
 # Data Context
 
-## Democracy Dataset
-
-The democracy dataset was published as part of the TidyTuesday project and are from the Boix-Miller-Rosato Dichotomous Coding of Democracy dataset. The data was collected and curated by political scientists to document the political characteristics of countries across the globe.
-
-- Who: The data was compiled by researchers in political science and published via TidyTuesday on GitHub.
-- Where: Each row represents a single country in a single year, covering countries worldwide.
-- When: The dataset covers from 1950 to 2022, giving over 70 years of political history.
-- How: The Data was collected by political scientists through a historical records, expert coding, and cross-referencing of government documents and electoral records.
-- Why: The dataset was created to enable researchers to study patterns in democratization, regime stability, election integrity, and political representation across time and geography.
-
-Key variables include `regime_category_index` (type of government), `is_democracy`, `has_full_suffrage`, `has_postponed_election`, `is_female_president`, `is_female_monarch`, and `election_system`, among many others.
-
+## Original Data
+  For this study, we used a dataset from the Boix-Miller-Rosato Dichotomous Coding of Democracy dataset, which was shared through the TidyTuesday project on GitHub. The dataset provides a detailed look at political systems around the world from 1950 through 2022. Because each row represents a single country in a single year, the data allow us to examine political patterns and changes across more than seven decades of global history.
+  The dataset was created and curated by political scientists using historical records, expert coding, government documents, and electoral information. Its main purpose is to support research on topics such as democratization, regime stability, election integrity, suffrage, and political representation. This makes it especially useful for studying how democratic and non-democratic systems differ, as well as how political institutions evolve over time.
+  Some of the most important variables include government type, democracy status, full suffrage, postponed elections, female political leadership, and electoral system type. These variables give us a broad view of each country’s political structure and make it possible to compare trends across countries, regions, and years.
+  
 ## Supplemental GDP and Unemployment Data
 
-To investigate factors associated with a country's economic performance, we supplemented the democracy dataset with two additional datasets acquired via the API-Ninjas public API:
 
-- **GDP Data (`Country_GDP.csv`):** Contains annual nominal GDP and GDP growth rate (%) by country code and year. Data were collected by querying the API-Ninjas GDP endpoint for each unique country code present in the democracy dataset.
-- **Unemployment Data (`employ2.csv`):** Contains annual unemployment rates (%) by country code and year, retrieved from the API-Ninjas unemployment endpoint using the same iteration approach.
-
-These two datasets were joined to the democracy dataset by `country_code` and `year`, creating a master dataset (`masterSet`) used in the economic analysis sections below. Due to API coverage limitations, not all countries and years have GDP or unemployment data available — approximately 11,195 missing unemployment values remain after joining.
-
-- Who: API-Ninjas averages economic data from sources including the World Bank and IMF.
-- Where: Country-level observations; the same observational unit as the democracy data.
-- When: Coverage varies by country; generally spans from the 1960s through 2022 for most included countries.
-- How: Acquired programmatically using custom R functions that iterated over all distinct country codes and called the relevant API endpoints.
-- Why: GDP and unemployment data allow us to explore the relationship between political regime type and economic outcomes, a central question in comparative political economy.
-
----
+  To look at factors connected to a country’s economic performance, we added two outside sources to our democracy project. These sources were collected using the API-Ninjas public API and gave us information about GDP, GDP growth, and unemployment. Adding these economic variables helps connect the political side of the project to economic outcomes, which matters because our questions focus on how regime type and leadership may relate to a country’s overall performance.
+  The first source, `Country_GDP.csv`, focuses on national economic output. It came from the API-Ninjas GDP endpoint, which provides country-level economic information from sources such as the World Bank and IMF. Each observation represents one country in one year, so the main unit of analysis is country-year. This source includes variables such as country code, year, nominal GDP, and GDP growth rate. The years available are not the same for every country, but many countries have records across several decades and into the 2020s. We collected this information by using the country codes from our democracy records, sending those country codes through the API, and combining the returned results into one table. This source is useful because GDP and GDP growth give us a way to compare economic performance across political systems.
+  The second source, `employ2.csv`, focuses on unemployment. It came from the API-Ninjas unemployment endpoint. Like the GDP source, each observation represents one country in one year, so the unit of analysis is also country-year. This source includes variables such as country code, year, and unemployment rate. The available years differ by country because the API does not return the same amount of information for every country. We collected this information using the same general process as before: we looped through the country codes from our democracy records, requested unemployment information for each country, and combined the results into one table. This source matters because unemployment gives another way to measure economic conditions beyond just national output.
+  After collecting both economic sources, we joined them with the original democracy records using three digit country code and the year of the given observation. This created our combined working table, which brings together political variables and economic variables for the analysis. One limitation is that not every country-year had matching GDP or unemployment values, so some missing values remained after the join. This makes sense because the political records and the API results do not cover every country and year in the same exact way.
+------------------------------------------------------------------------
 
 # Research Questions
 
@@ -69,7 +54,7 @@ This question draws exclusively on the democracy dataset, examining regime chang
 
 This question leverages the joined master dataset combining democracy, GDP, and unemployment data, allowing us to model and visualize economic outcomes as a function of political and social variables.
 
----
+------------------------------------------------------------------------
 
 # Data Summaries & Visualizations
 
@@ -255,7 +240,7 @@ ggplot(regime_change_counts,
   )
 ```
 
----
+------------------------------------------------------------------------
 
 ## Question 2: Factors Associated with Countries' GDP
 
@@ -263,7 +248,7 @@ ggplot(regime_change_counts,
 
 #### Proportion of Years with a Female Leader by Regime Type and Election System
 
-The function below summarizes the proportion of country-years with a female leader (monarch or president), grouped by a user-specified variable.
+The table below summarizes the proportion of country-years with a female leader (monarch or president), grouped by a user-specified variable.
 
 ```{r female-leader-function}
 sum_female_leader <- function(democ_data, columns, group) {
@@ -288,14 +273,15 @@ sum_female_leader(
 ) |>
   filter(!is.na(regime_category)) |>
   arrange(desc(prop_female_leader)) |>
+  slice_head(n = 25) |>
   rename(`Regime Category` = regime_category,
          `Proportion with Female Leader` = prop_female_leader) |>
   gt() |>
   tab_header(
     title = "Female Leadership by Regime Type",
-    subtitle = "Proportion of country-years with a female leader"
+    subtitle = "Top 25 regime categories by proportion of country-years with a female leader"
   ) |>
-  tab_caption("Table 3. Proportion of country-years with a female leader by regime type.") |>
+  tab_caption("Table 3. Top 25 regime categories by proportion of country-years with a female leader.") |>
   fmt_percent(columns = `Proportion with Female Leader`, decimals = 1) |>
   tab_style(
     style = list(cell_fill(color = "#18bc9c"), cell_text(color = "white", weight = "bold")),
@@ -313,6 +299,7 @@ sum_female_leader(
 ) |>
   filter(!is.na(election_system)) |>
   arrange(desc(prop_female_leader)) |>
+  slice_head(n = 22) |>
   rename(`Election System` = election_system,
          `Proportion with Female Leader` = prop_female_leader) |>
   gt() |>
@@ -364,7 +351,7 @@ ggplot(aveGrowth, aes(x = year, y = mean_growth, color = factor(is_democracy))) 
 
 #### GDP Growth Distribution by Female Leadership Status (2015–2020)
 
-```{r gdp-female-ridge-plot}
+```{r gdp-female-ridge-plot, warning=FALSE, message= FALSE}
 #| fig-alt: "Ridge plot showing the distribution of GDP growth rates for countries with and without a female leader, for each year from 2015 to 2020. Both groups show broadly similar distributions, though countries with female leaders show slightly different spread in some years."
 
 female_leader_any <- masterSet |>
@@ -416,18 +403,12 @@ female_leader_any |>
   )
 ```
 
----
+------------------------------------------------------------------------
 
 # Data Model
 
-To formally address **Research Question 2**, we fit a linear regression model predicting the **log of nominal GDP** from:
-
-- `year` — to capture economic growth over time
-- `unemployment_rate` — as an economic predictor
-- `is_democracy` — to test whether democratic status affects GDP
-- `unemployment_rate × is_democracy` — an interaction term to test whether the relationship between unemployment and GDP differs between democracies and non-democracies
-
-We used log(GDP) because nominal GDP is highly right-skewed; log-transforming it stabilizes variance and produces more interpretable model coefficients. The year 2020 was excluded due to pandemic-related economic distortions.
+  To formally address Research Question 2, we used a linear regression model to examine how economic and political factors are associated with a country’s GDP. The response variable in the model was the log of nominal GDP, while the predictor variables included year, unemployment rate, democratic status, and an interaction between unemployment rate and democratic status. Including year allowed us to account for overall economic growth over time, while unemployment rate served as an economic indicator that may help explain differences in GDP. Democratic status was included to test whether democracies and non-democracies tend to differ in GDP, and the interaction term allowed us to examine whether the relationship between unemployment and GDP changes depending on whether a country is democratic.
+  We used the log of GDP because nominal GDP is highly right-skewed, meaning that a small number of countries have extremely large GDP values compared to the rest of the dataset. Taking the log helps reduce this skew, stabilize the variation in the data, and make the model coefficients easier to interpret. We also excluded the year 2020 from the model because the COVID-19 pandemic created unusual economic disruptions that could distort the overall relationship between GDP, unemployment, and democracy.
 
 ```{r model-filter}
 mastfilt <- masterSet |>
@@ -440,10 +421,9 @@ mastfilt <- masterSet |>
   )
 ```
 
-```{r model-fit}
+```{r model-fit, warning=FALSE,message=FALSE,  results='hide'}
 lmGDP <- lm(log(gdp_nominal) ~ unemployment_rate * is_democracy + year,
             data = mastfilt)
-summary(lmGDP)
 ```
 
 ```{r model-table}
@@ -496,7 +476,7 @@ broom::tidy(lmGDP) |>
 - **Is Democracy** is positively associated with log(GDP), suggesting democratic countries tend to have higher GDPs on average.
 - The **interaction term** (Unemployment × Democracy) is negative and significant, meaning the negative relationship between unemployment and GDP is *stronger* in democracies than in non-democracies. In other words, rising unemployment is more damaging to GDP in democratic countries.
 
-```{r model-plot}
+```{r model-plot, warning= FALSE, message= FALSE}
 #| fig-alt: "Scatter plot with regression lines showing the relationship between unemployment rate and log GDP, separately for democracies (teal) and non-democracies (red). The regression line for democracies has a steeper negative slope, indicating unemployment is more negatively associated with GDP in democratic countries."
 
 mastfilt <- mastfilt |>
