@@ -26,27 +26,25 @@ democracy_data <- readr::read_csv(
 masterSet <- read.csv("masterSet.csv")
 ```
 
-# Data Context
+# Introduction 
 
-## Original Data
+Countries do not just become democracies or dictatorships overnight nor do their economic systems alter in this way. Political systems shift, collapse, recover, and sometimes cycle through the same kinds of instability. Some countries remain politically steady for decades, while others seem to rewrite the rules of government every few years. Some countries hold great economic power but others live in poverty. We wanted to know whether these systems follow a pattern in the way regime types change and how that relates to political instability.
 
-For this study, we used a dataset from the Boix-Miller-Rosato Dichotomous Coding of Democracy dataset, which was shared through the TidyTuesday project on GitHub. The dataset provides a detailed look at political systems around the world from 1950 through 2022. Because each row represents a single country in a single year, the data allow us to examine political patterns and changes across more than seven decades of global history.
+For this study, we used data from the Boix-Miller-Rosato Dichotomous Coding of Democracy dataset, which was shared through the TidyTuesday project on GitHub. The dataset provides a detailed look at political systems around the world from 1950 through 2022. Because each row represents a single country in a single year, the data allow us to examine political patterns and changes across more than seven decades of global history.
 
 The dataset was created and curated by political scientists using historical records, expert coding, government documents, and electoral information. Its main purpose is to support research on topics such as democratization, regime stability, election integrity, suffrage, and political representation. This makes it especially useful for studying how democratic and non-democratic systems differ, as well as how political institutions evolve over time. Some of the most important variables include government type, democracy status, full suffrage, postponed elections, female political leadership, and electoral system type. These variables give us a broad view of each country’s political structure and make it possible to compare trends across countries, regions, and years.
 
 ## Supplemental GDP and Unemployment Data
 
-To look at factors connected to a country’s economic performance, we added two outside sources to our democracy project. These sources were collected using the API-Ninjas public API and gave us information about GDP, GDP growth, and unemployment. Adding these economic variables helps connect the political side of the project to economic outcomes, which matters because our questions focus on how regime type and leadership may relate to a country’s overall performance.
+To look at factors connected to a country’s economic performance, we looked to obtain additional sources for our study. These sources were collected using the API-Ninjas public API and gave us information about GDP, GDP growth, and unemployment. Adding these economic variables helps connect the political side of the project to economic outcomes, which matters because our interests focus on how regime type and leadership may relate to a country’s overall performance.
 
-The first source, Country_GDP.csv, focuses on national economic output. It came from the API-Ninjas GDP endpoint, which provides country-level economic information from sources such as the World Bank and IMF. Each observation represents one country in one year, so the main unit of analysis is country-year. This source includes variables such as country code, year, nominal GDP, and GDP growth rate. The years available are not the same for every country, but many countries have records across several decades and into the 2020s. We collected this information by using the country codes from our democracy records, sending those country codes through the API, and combining the returned results into one table. This source is useful because GDP and GDP growth give us a way to compare economic performance across political systems.
+Our first addition, focuses on national economic output. It came from the API-Ninjas GDP endpoint, which provides country-level economic information from sources such as the World Bank and IMF. Each observation represents one country in one year, so the main unit of analysis is country-year. This source includes variables such as country code, year, nominal GDP, and GDP growth rate. The years available are not the same for every country, but many countries have records across several decades and into the 2020s. We collected this information by using the country codes from our democracy records, sending those country codes through the API, and combining the returned results into one table. This addition is useful because GDP and GDP growth give us a way to compare economic performance across political systems.
 
-The second source, employ2.csv, focuses on unemployment. It came from the API-Ninjas unemployment endpoint. Like the GDP source, each observation represents one country in one year, so the unit of analysis is also country-year. This source includes variables such as country code, year, and unemployment rate. The available years differ by country because the API does not return the same amount of information for every country. We collected this information using the same general process as before: we looped through the country codes from our democracy records, requested unemployment information for each country, and combined the results into one table. This source matters because unemployment gives another way to measure economic conditions beyond just national output.
-
-After collecting both economic sources, we joined them with the original democracy records using three digit country code and the year of the given observation. This created our combined working table, which brings together political variables and economic variables for the analysis. One limitation is that not every country-year had matching GDP or unemployment values, so some missing values remained after the join. This makes sense because the political records and the API results do not cover every country and year in the same exact way.
+The second addition focuses on unemployment. It came from the API-Ninjas unemployment endpoint. Like the GDP source, each observation represents one country in one year, so the unit of analysis is also country-year. This source includes variables such as country code, year, and unemployment rate. The available years differ by country because the API does not return the same amount of information for every country. We collected this information using the same general process as before: we looped through the country codes from our democracy records, requested unemployment information for each country, and combined the results into one table. This source matters because unemployment gives another way to measure economic conditions beyond just national output.
 
 ------------------------------------------------------------------------
 
-# Research Questions
+# Areas of Interest
 
 This report addresses two research questions:
 
@@ -59,8 +57,6 @@ This question draws exclusively on the democracy dataset, examining regime chang
 This question leverages the joined master dataset combining democracy, GDP, and unemployment data, allowing us to model and visualize economic outcomes as a function of political and social variables.
 
 ------------------------------------------------------------------------
-
-# Data Summaries & Visualizations
 
 ## Question 1: Regime Changes Over Time
 
