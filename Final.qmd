@@ -17,6 +17,8 @@ library(countrycode)
 library(ggridges)
 library(scales)
 library(gt)
+library(ggtext)
+library(forcats)
 ```
 
 ```{r load-data, message=FALSE}
@@ -26,7 +28,9 @@ democracy_data <- readr::read_csv(
 masterSet <- read.csv("masterSet.csv")
 ```
 
-# Introduction 
+# Democracy Around the world: A Data Analysis
+
+## Introduction 
 
 Countries do not just become democracies or dictatorships overnight nor do their economic systems alter in this way. Political systems shift, collapse, recover, and sometimes cycle through the same kinds of instability. Some countries remain politically steady for decades, while others seem to rewrite the rules of government every few years. Some countries hold great economic power but others live in poverty. We wanted to know whether these systems follow a pattern in the way regime types change and how that relates to political instability.
 
@@ -34,7 +38,7 @@ For this study, we used data from the Boix-Miller-Rosato Dichotomous Coding of D
 
 The dataset was created and curated by political scientists using historical records, expert coding, government documents, and electoral information. Its main purpose is to support research on topics such as democratization, regime stability, election integrity, suffrage, and political representation. This makes it especially useful for studying how democratic and non-democratic systems differ, as well as how political institutions evolve over time. Some of the most important variables include government type, democracy status, full suffrage, postponed elections, female political leadership, and electoral system type. These variables give us a broad view of each country’s political structure and make it possible to compare trends across countries, regions, and years.
 
-## Supplemental GDP and Unemployment Data
+### Supplemental GDP and Unemployment Data
 
 To look at factors connected to a country’s economic performance, we looked to obtain additional sources for our study. These sources were collected using the API-Ninjas public API and gave us information about GDP, GDP growth, and unemployment. Adding these economic variables helps connect the political side of the project to economic outcomes, which matters because our interests focus on how regime type and leadership may relate to a country’s overall performance.
 
@@ -46,25 +50,19 @@ The second addition focuses on unemployment. It came from the API-Ninjas unemplo
 
 # Areas of Interest
 
-This report addresses two research questions:
-
-> **Question 1 (Original Data):** How have regime types changed over time across different continents, and which countries have experienced the most political instability?
-
-This question draws exclusively on the democracy dataset, examining regime change counts by country and cumulative changes over time by continent.
-
-> **Question 2 (Supplemental Data):** What key factors — including democracy status, unemployment rate, and female leadership — are associated with a country's GDP?
+> **Question 2 (Supplemental Data):** What key factors including democracy status, unemployment rate, and female leadership are associated with a country's GDP?
 
 This question leverages the joined master dataset combining democracy, GDP, and unemployment data, allowing us to model and visualize economic outcomes as a function of political and social variables.
 
 ------------------------------------------------------------------------
 
-## Question 1: Regime Changes Over Time
+## A Wide Look at Regime Changes Over Time
 
-### Summary Tables
+We were interested in how have regime types changed over time across different continents, and which countries have experienced the most political instability.
 
-#### Countries with the Most Regime Changes
+### Countries with the Most Regime Changes
 
-The function below counts the number of times a country changed its regime type between consecutive years, then identifies the top 10 most politically unstable countries over the full dataset period.
+To investigate our interests we decided to count regime changes between the years 1950 to 2022 for each of the countries and use this as a metric of the stability, where countries who have higher amounts if regime changes would be more unstable. We reported the top ten we found to have the highest regime changes and therefore the highest instability in the plot below. We decided to color the bars with respect to their continents to show further information.
 
 ```{r regime-change-function}
 count_regime_changes <- function(country) {
@@ -81,29 +79,50 @@ results <- democracy_data |>
   distinct(country_name) |>
   mutate(n_changes = map_dbl(country_name, count_regime_changes))
 
-results |>
-  slice_max(n_changes, n = 10) |>
-  rename(Country = country_name, `Number of Regime Changes` = n_changes) |>
-  gt() |>
-  tab_header(
+top_regime_plot <- top_regime |>
+  arrange(desc(n_changes)) |>
+  mutate(
+    country_name = fct_reorder(country_name, n_changes),
+    continent = factor(continent, levels = unique(continent))
+  )
+
+top_regime_plot |>
+  ggplot(aes(
+    x = n_changes,
+    y = country_name,
+    fill = continent
+  )) +
+  geom_col(width = 0.75) +
+  scale_fill_manual(
+    values = continent_cols,
+    breaks = levels(top_regime_plot$continent),
+    na.value = "gray70"
+  ) +
+  labs(
     title = "Top 10 Most Politically Unstable Countries",
-    subtitle = "Total regime changes, 1950–2022"
-  ) |>
-  tab_caption("Table 1. Top 10 countries by total number of regime changes (1950–2022).") |>
-  tab_style(
-    style = list(cell_fill(color = "#18bc9c"), cell_text(color = "white", weight = "bold")),
-    locations = cells_column_labels()
-  ) |>
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_body(columns = Country)
-  ) |>
-  opt_stylize(style = 1)
+    subtitle = "Total regime changes, 1950–2022",
+    x = "Number of Regime Changes",
+    y = NULL,
+    fill = "Continent"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "right",
+    legend.title = element_text(face = "bold"),
+    legend.text = element_text(size = 10),
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 11),
+    axis.text.y = element_text(size = 10),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  )
 ```
 
-#### Regime Change Counts by Continent
+From this plot it is apparent that Thailand, Argentina and Pakistan appeared to have the highest number of regime changes across this time period. We notice the top two countries with the highest regime changes are both in Asia. The countries below still showed signed of extreme instability all of which boasting 7 regime changes.
 
-This table summarizes the total and average number of regime changes per continent across the full dataset period, giving a higher-level geographic view of political instability to complement the country-level table above.
+### Regime Change Counts by Continent
+
+Zooming out from our country perspective we were interested in a larger frame to pick up on some more general ideas about what is going on around the world in regard to political stability. The table below investigates the number regime changes for each continent and reports the most unstable country within that continent. Since each continent holds a different number of countries we thought it was a good idea to include the average number of changes per country on each given continent.
 
 ```{r regime-continent-table}
 democracy_data |>
@@ -148,44 +167,11 @@ democracy_data |>
   opt_stylize(style = 1)
 ```
 
-### Visualizations
+This table gives us a wealth of information. The key things to notice is that Africa has the highest average regime changes per country and therefore has the least stable governments. We also notice that Europe and Oceana have much lower average regime changes per country. Even though Asia contained the countries with two highest amount of regime changes their had less average changes per country than both Africa and the Americas.
 
-#### Top 10 Countries by Total Regime Changes
+### Cumulative Regime Changes per Continent Over Time
 
-```{r top-countries-regime-plot}
-#| fig-alt: "Horizontal bar chart showing the top 10 countries with the most total regime changes between 1950 and 2022. Each bar is colored by continent, allowing readers to see which regions contribute the most politically unstable countries."
-
-results |>
-  slice_max(n_changes, n = 10) |>
-  mutate(continent = countrycode::countrycode(
-    country_name, origin = "country.name", destination = "continent"
-  )) |>
-  ggplot(aes(x = n_changes, y = reorder(country_name, n_changes), fill = continent)) +
-  geom_col() +
-  scale_fill_manual(values = c(
-    "Africa"   = "#E63946",
-    "Americas" = "#F4A261",
-    "Asia"     = "#2A9D8F",
-    "Europe"   = "#457B9D",
-    "Oceania"  = "#9B5DE5"
-  )) +
-  scale_x_continuous(breaks = scales::breaks_pretty()) +
-  labs(
-    title = "Top 10 Most Politically Unstable Countries",
-    subtitle = "Total regime changes, 1950–2022",
-    x = "Number of Regime Changes",
-    y = NULL,
-    fill = "Continent",
-    caption = "Source: Boix-Miller-Rosato Democracy Dataset via TidyTuesday"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    plot.title = element_text(face = "bold"),
-    panel.grid.major.y = element_blank()
-  )
-```
-
-#### Cumulative Regime Changes per Continent Over Time
+Sure Africa had the highest number of regime changes over the full span of our data but that doesn't give us the full story. We wanted to create a visual that allows us to investigate how these continents regime change counts changed over time. Below is our visual showing the cumulative Regime changes over time for each continent.
 
 ```{r regime-change-continent-plot}
 #| fig-alt: "Area and line chart showing cumulative regime changes over time from 1950 to 2022, broken out by continent. Africa and Asia show the steepest growth in cumulative changes. Each continent is represented by a distinct color."
@@ -240,11 +226,9 @@ ggplot(regime_change_counts,
   )
 ```
 
-------------------------------------------------------------------------
+This visual shows that Africa did not always have the highest number of regime changes and it only spiked above the rest in the late twentieth century. Asia appears to have a very constant increase in the number of regime changes while it appears the Americas are starting to taper off.
 
-## Question 2: Factors Associated with Countries' GDP
-
-### Summary Tables
+## Factors Associated with Countries' GDP
 
 #### Proportion of Years with a Female Leader by Regime Type and Election System
 
@@ -478,29 +462,29 @@ broom::tidy(lmGDP) |>
 ```{r model-plot, warning= FALSE, message= FALSE}
 #| fig-alt: "Scatter plot with regression lines showing the relationship between unemployment rate and log GDP, separately for democracies (teal) and non-democracies (red). The regression line for democracies has a steeper negative slope, indicating unemployment is more negatively associated with GDP in democratic countries."
 
-mastfilt <- mastfilt |>
-  mutate(preds = exp(predict(lmGDP)))
-
-ggplot(
-  aes(y = log(gdp_nominal), x = unemployment_rate, color = factor(is_democracy)),
-  data = mastfilt
-) +
-  geom_point(alpha = 0.1) +
-  geom_smooth(method = "lm", se = FALSE, linewidth = 1.2) +
+model_data |>
+  ggplot(aes(
+    x = unemployment_rate,
+    y = log(gdp_nominal),
+    color = factor(is_democracy)
+  )) +
+  geom_point(alpha = 0.12) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1.1) +
   scale_color_manual(
-    values = c("FALSE" = "#E63946", "TRUE" = "#2A9D8F"),
+    values = democracy_cols,
     labels = c("FALSE" = "Non-Democracy", "TRUE" = "Democracy")
   ) +
   labs(
+    title = "Unemployment and Log GDP",
+    subtitle = "<span style='color:#E84A5F; font-weight:bold;'>Non-Democracy</span> vs. <span style='color:#18bc9c; font-weight:bold;'>Democracy</span>",
     x = "Unemployment Rate (%)",
-    y = "Log(Nominal GDP)",
-    color = "Regime Type",
-    title = "Relationship Between Unemployment and Log GDP by Democracy Status",
-    caption = "Source: API-Ninjas GDP & Unemployment Data joined with TidyTuesday Democracy Dataset"
+    y = "Logged Nominal GDP",
+    color = NULL
   ) +
-  theme_minimal(base_size = 13) +
+  theme_minimal(base_size = 12) +
   theme(
     plot.title = element_text(face = "bold"),
-    legend.position = "top"
+    plot.subtitle = ggtext::element_markdown(size = 11),
+    legend.position = "none"
   )
 ```
