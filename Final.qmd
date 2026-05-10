@@ -28,9 +28,7 @@ democracy_data <- readr::read_csv(
 masterSet <- read.csv("masterSet.csv")
 ```
 
-# Democracy Around the world: A Data Analysis
-
-## Introduction 
+# Introduction
 
 Countries do not just become democracies or dictatorships overnight nor do their economic systems alter in this way. Political systems shift, collapse, recover, and sometimes cycle through the same kinds of instability. Some countries remain politically steady for decades, while others seem to rewrite the rules of government every few years. Some countries hold great economic power but others live in poverty. We wanted to know whether these systems follow a pattern in the way regime types change and how that relates to political instability.
 
@@ -38,7 +36,7 @@ For this study, we used data from the Boix-Miller-Rosato Dichotomous Coding of D
 
 The dataset was created and curated by political scientists using historical records, expert coding, government documents, and electoral information. Its main purpose is to support research on topics such as democratization, regime stability, election integrity, suffrage, and political representation. This makes it especially useful for studying how democratic and non-democratic systems differ, as well as how political institutions evolve over time. Some of the most important variables include government type, democracy status, full suffrage, postponed elections, female political leadership, and electoral system type. These variables give us a broad view of each country’s political structure and make it possible to compare trends across countries, regions, and years.
 
-### Supplemental GDP and Unemployment Data
+## Supplemental GDP and Unemployment Data
 
 To look at factors connected to a country’s economic performance, we looked to obtain additional sources for our study. These sources were collected using the API-Ninjas public API and gave us information about GDP, GDP growth, and unemployment. Adding these economic variables helps connect the political side of the project to economic outcomes, which matters because our interests focus on how regime type and leadership may relate to a country’s overall performance.
 
@@ -46,21 +44,11 @@ Our first addition, focuses on national economic output. It came from the API-Ni
 
 The second addition focuses on unemployment. It came from the API-Ninjas unemployment endpoint. Like the GDP source, each observation represents one country in one year, so the unit of analysis is also country-year. This source includes variables such as country code, year, and unemployment rate. The available years differ by country because the API does not return the same amount of information for every country. We collected this information using the same general process as before: we looped through the country codes from our democracy records, requested unemployment information for each country, and combined the results into one table. This source matters because unemployment gives another way to measure economic conditions beyond just national output.
 
-------------------------------------------------------------------------
-
-# Areas of Interest
-
-> **Question 2 (Supplemental Data):** What key factors including democracy status, unemployment rate, and female leadership are associated with a country's GDP?
-
-This question leverages the joined master dataset combining democracy, GDP, and unemployment data, allowing us to model and visualize economic outcomes as a function of political and social variables.
-
-------------------------------------------------------------------------
-
-## A Wide Look at Regime Changes Over Time
+# A Wide Look at Regime Changes Over Time
 
 We were interested in how have regime types changed over time across different continents, and which countries have experienced the most political instability.
 
-### Countries with the Most Regime Changes
+## Countries with the Most Regime Changes
 
 To investigate our interests we decided to count regime changes between the years 1950 to 2022 for each of the countries and use this as a metric of the stability, where countries who have higher amounts if regime changes would be more unstable. We reported the top ten we found to have the highest regime changes and therefore the highest instability in the plot below. We decided to color the bars with respect to their continents to show further information.
 
@@ -74,6 +62,26 @@ count_regime_changes <- function(country) {
   changes <- regime != lag(regime)
   sum(changes, na.rm = TRUE)
 }
+continent_cols <- c(
+  "Africa" = "#E63946",
+  "Americas" = "#F4A261",
+  "Asia" = "#2A9D8F",
+  "Europe" = "#457B9D",
+  "Oceania" = "#9B5DE5"
+)
+regime_by_country <- democracy_data |>
+  arrange(country_name, year) |>
+  group_by(country_name) |>
+  summarise(
+    n_changes = sum(regime_category_index != lag(regime_category_index), na.rm = TRUE),
+    .groups = "drop"
+  )
+
+top_regime <- regime_by_country |>
+  slice_max(n_changes, n = 10, with_ties = FALSE) |>
+  mutate(
+    continent = countrycode(country_name, "country.name", "continent")
+  )
 
 results <- democracy_data |>
   distinct(country_name) |>
@@ -120,7 +128,7 @@ top_regime_plot |>
 
 From this plot it is apparent that Thailand, Argentina and Pakistan appeared to have the highest number of regime changes across this time period. We notice the top two countries with the highest regime changes are both in Asia. The countries below still showed signed of extreme instability all of which boasting 7 regime changes.
 
-### Regime Change Counts by Continent
+## Regime Change Counts by Continent
 
 Zooming out from our country perspective we were interested in a larger frame to pick up on some more general ideas about what is going on around the world in regard to political stability. The table below investigates the number regime changes for each continent and reports the most unstable country within that continent. Since each continent holds a different number of countries we thought it was a good idea to include the average number of changes per country on each given continent.
 
@@ -169,7 +177,7 @@ democracy_data |>
 
 This table gives us a wealth of information. The key things to notice is that Africa has the highest average regime changes per country and therefore has the least stable governments. We also notice that Europe and Oceana have much lower average regime changes per country. Even though Asia contained the countries with two highest amount of regime changes their had less average changes per country than both Africa and the Americas.
 
-### Cumulative Regime Changes per Continent Over Time
+## Cumulative Regime Changes per Continent Over Time
 
 Sure Africa had the highest number of regime changes over the full span of our data but that doesn't give us the full story. We wanted to create a visual that allows us to investigate how these continents regime change counts changed over time. Below is our visual showing the cumulative Regime changes over time for each continent.
 
@@ -228,11 +236,13 @@ ggplot(regime_change_counts,
 
 This visual shows that Africa did not always have the highest number of regime changes and it only spiked above the rest in the late twentieth century. Asia appears to have a very constant increase in the number of regime changes while it appears the Americas are starting to taper off.
 
-## Factors Associated with Countries' GDP
+# Democracy, Unemployment, GDP, and Gender
 
-#### Proportion of Years with a Female Leader by Regime Type and Election System
+We were interested in how factors like democracy status, unemployment type, GDP, and gender of leadership relate to each other. Political and economic systems are do not exist in fully separate worlds. All of these factors work with each other separate and help give us an idea of how countries function with respect to their leadership and economic status.
 
-The table below summarizes the proportion of country-years with a female leader (monarch or president), grouped by a user-specified variable.
+## Proportion of Years with a Female Leader by Regime Type and Election System
+
+The table below shows the regime categories with the highest proportions of years that included a female leader. It shows where female leadership was more common in the historical record giving us insight on what regime types boasts the most female leaders.
 
 ```{r female-leader-function}
 sum_female_leader <- function(democ_data, columns, group) {
@@ -274,6 +284,10 @@ sum_female_leader(
   opt_stylize(style = 1)
 ```
 
+It is important to not that thew highest proportions of female leader come from the small regime categories that gave only existed with female leaders. Looking closer at the table we notice colonies have a high proportion of female leaders as well.
+
+We wanted to grasp what election systems were most often associated with female leadership. While the first table allowed us to see female leaders by regime type, this second table looks at election systems to see whether certain voting structures appear more frequently in years with female leaders. This helps us compare female leadership across political institutions, rather than only across regime categories.
+
 ```{r female-leader-election}
 # By election system
 sum_female_leader(
@@ -300,40 +314,11 @@ sum_female_leader(
   opt_stylize(style = 1)
 ```
 
-### Visualizations
+This table shows that female leadership appears more often in some election systems than others. Several systems, such as FPTP and proportional representation, proportional representation, and selection by committee, show the highest proportions of country-years with female leaders. However, some of these categories may have fewer total observations similar to our regime table, so the percentages should be examined carefully. Overall, the table suggests that female leadership is not evenly spread across election systems and may be more common under election systems that use a small group to pick a leader.
 
-#### GDP Growth: Democracies vs. Non-Democracies Over Time
+## GDP Growth Distribution by Female Leadership Status (2015–2020)
 
-```{r gdp-democracy-plot}
-#| fig-alt: "Line chart showing average annual GDP growth rate from the 1960s to 2022, separately for democracies (blue) and non-democracies (red). Both groups show similar volatility with spikes around global economic crises."
-
-aveGrowth <- masterSet |>
-  group_by(year, is_democracy) |>
-  summarise(mean_growth = mean(gdp_growth, na.rm = TRUE), .groups = "drop") |>
-  filter(!is.na(mean_growth), !is.na(is_democracy))
-
-ggplot(aveGrowth, aes(x = year, y = mean_growth, color = factor(is_democracy))) +
-  geom_line(linewidth = 1) +
-  scale_color_manual(
-    values = c("FALSE" = "#E63946", "TRUE" = "#2A9D8F"),
-    labels = c("FALSE" = "Non-Democracy", "TRUE" = "Democracy")
-  ) +
-  scale_y_continuous(labels = label_number(suffix = "%")) +
-  labs(
-    x = "Year",
-    y = "Average GDP Growth Rate",
-    title = "Mean GDP Growth Rate: Democracies vs. Non-Democracies",
-    color = NULL,
-    caption = "Source: API-Ninjas GDP Data joined with TidyTuesday Democracy Dataset"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    plot.title = element_text(face = "bold"),
-    legend.position = "top"
-  )
-```
-
-#### GDP Growth Distribution by Female Leadership Status (2015–2020)
+Now that we have been able to look at where female leadership appears most frequently across election systems and regime types, we wanted to see whether female leadership is connected to economic outcomes. To do this, we looked at GDP growth from 2015 to 2020 and compared years with a female leader to years without a female leader. This visual helps us move beyond simply counting female leaders and instead asks whether countries with female leaders show different patterns of economic growth.
 
 ```{r gdp-female-ridge-plot, warning=FALSE, message= FALSE}
 #| fig-alt: "Ridge plot showing the distribution of GDP growth rates for countries with and without a female leader, for each year from 2015 to 2020. Both groups show broadly similar distributions, though countries with female leaders show slightly different spread in some years."
@@ -387,11 +372,46 @@ female_leader_any |>
   )
 ```
 
-------------------------------------------------------------------------
+The ridge plot shows that countries with and without female leaders had fairly similar GDP growth distributions from 2015 to 2020. Most years show slight positive growth. In some cases GDP growth with female leaders appears on the right tail indicating female leadership can be associated with slightly higher levels of GDP growth. However it is very slight so we cannot say there is a clear separation. This plot also highlights the negative growth that was globally experienced in 2020 likely due to COVID-19.
 
-# Data Model
+#### GDP Growth: Democracies vs. Non-Democracies Over Time
 
-To formally address Research Question 2, we used a linear regression model to examine how economic and political factors are associated with a country’s GDP. The response variable in the model was the log of nominal GDP, while the predictor variables included year, unemployment rate, democratic status, and an interaction between unemployment rate and democratic status. Including year allowed us to account for overall economic growth over time, while unemployment rate served as an economic indicator that may help explain differences in GDP. Democratic status was included to test whether democracies and non-democracies tend to differ in GDP, and the interaction term allowed us to examine whether the relationship between unemployment and GDP changes depending on whether a country is democratic. We used the log of GDP because nominal GDP is highly right-skewed, meaning that a small number of countries have extremely large GDP values compared to the rest of the dataset. Taking the log helps reduce this skew, stabilize the variation in the data, and make the model coefficients easier to interpret. We also excluded the year 2020 from the model because the COVID-19 pandemic created unusual economic disruptions that could distort the overall relationship between GDP, unemployment, and democracy.
+Continuing our analysis of GDP we want to compare economic performance more directly across political systems. The graph below shows average GDP growth for democracies and non-democracies over time. This helps us see whether one group consistently experienced stronger growth, or whether both groups followed similar global economic patterns.
+
+```{r gdp-democracy-plot}
+#| fig-alt: "Line chart showing average annual GDP growth rate from the 1960s to 2022, separately for democracies (blue) and non-democracies (red). Both groups show similar volatility with spikes around global economic crises."
+
+aveGrowth <- masterSet |>
+  group_by(year, is_democracy) |>
+  summarise(mean_growth = mean(gdp_growth, na.rm = TRUE), .groups = "drop") |>
+  filter(!is.na(mean_growth), !is.na(is_democracy))
+
+ggplot(aveGrowth, aes(x = year, y = mean_growth, color = factor(is_democracy))) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(
+    values = c("FALSE" = "#E63946", "TRUE" = "#2A9D8F"),
+    labels = c("FALSE" = "Non-Democracy", "TRUE" = "Democracy")
+  ) +
+  scale_y_continuous(labels = label_number(suffix = "%")) +
+  labs(
+    x = "Year",
+    y = "Average GDP Growth Rate",
+    title = "Mean GDP Growth Rate: Democracies vs. Non-Democracies",
+    color = NULL,
+    caption = "Source: API-Ninjas GDP Data joined with TidyTuesday Democracy Dataset"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "top"
+  )
+```
+
+The graph shows that democracies and non-democracies follow fairly similar GDP growth patterns over time, with both groups experiencing rises and drops. Non-democracies appear to have slightly higher average growth in several years, especially in the late 1990s and early 2000s, but the two lines often move in the same direction. Again we are able to see the negative growth that was globally experienced in 2020 likely due to COVID-19
+
+# Predicting GDP Based on Political & Economic Factors
+
+We used a linear regression model to examine how economic and political factors are associated with a country’s GDP. The response variable in the model was the log of nominal GDP, while the predictor variables included year, unemployment rate, democratic status, and an interaction between unemployment rate and democratic status. Including year allowed us to account for overall economic growth over time, while unemployment rate served as an economic indicator that may help explain differences in GDP. Democratic status was included to test whether democracies and non-democracies tend to differ in GDP, and the interaction term allowed us to examine whether the relationship between unemployment and GDP changes depending on whether a country is democratic. We used the log of GDP because nominal GDP is highly right-skewed, meaning that a small number of countries have extremely large GDP values compared to the rest of the dataset. Taking the log helps reduce this skew, stabilize the variation in the data, and make the model coefficients easier to interpret. We also excluded the year 2020 from the model because the COVID-19 pandemic created unusual economic disruptions that could distort the overall relationship between GDP, unemployment, and democracy.
 
 ```{r model-filter}
 mastfilt <- masterSet |>
@@ -461,6 +481,19 @@ broom::tidy(lmGDP) |>
 
 ```{r model-plot, warning= FALSE, message= FALSE}
 #| fig-alt: "Scatter plot with regression lines showing the relationship between unemployment rate and log GDP, separately for democracies (teal) and non-democracies (red). The regression line for democracies has a steeper negative slope, indicating unemployment is more negatively associated with GDP in democratic countries."
+model_data <- masterSet |>
+  filter(
+    !is.na(gdp_nominal),
+    gdp_nominal > 0,
+    !is.na(unemployment_rate),
+    !is.na(is_democracy),
+    !is.na(year),
+    year != 2020
+  )
+democracy_cols <- c(
+  "FALSE" = "#E63946",
+  "TRUE" = "#2A9D8F"
+)
 
 model_data |>
   ggplot(aes(
@@ -488,3 +521,5 @@ model_data |>
     legend.position = "none"
   )
 ```
+
+This plot helps us visualize what the interaction term is really representing. As unemployment increases, logged GDP tends to decrease for both democracies and non-democracies. However, the decline is steeper for democracies, suggesting that unemployment is more strongly related to lower GDP in democratic countries.
