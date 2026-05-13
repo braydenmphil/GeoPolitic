@@ -11,6 +11,8 @@ format:
         href: https://github.com/braydenmphil/GeoPolitic/blob/main/
       - icon: linkedin
         href: https://www.linkedin.com/
+      - icon: instagram
+        href: https://www.instagram.com/hadleywickham/
 execute:
   echo: false
   warning: false
