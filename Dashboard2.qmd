@@ -227,91 +227,156 @@ total_changes <- sum(regime_by_country$n_changes, na.rm = TRUE)
 <!-- #### Regime Changes by Continent -->
 
 <!-- ```{r} -->
+
 <!-- #| fig-height: 5.2 -->
 
 <!-- cumulative_regime |> -->
+
 <!--   ggplot(aes( -->
+
 <!--     x = year, -->
+
 <!--     y = cumulative_changes, -->
+
 <!--     color = continent, -->
+
 <!--     fill = continent -->
+
 <!--   )) + -->
+
 <!--   geom_area(alpha = 0.25, position = "identity") + -->
+
 <!--   geom_line(linewidth = 0.9) + -->
+
 <!--   scale_color_manual(values = continent_cols) + -->
+
 <!--   scale_fill_manual(values = continent_cols) + -->
+
 <!--   labs( -->
+
 <!--     title = "Cumulative Regime Changes by Continent", -->
+
 <!--     subtitle = "1950–2022", -->
+
 <!--     x = "Year", -->
+
 <!--     y = "Cumulative Changes", -->
+
 <!--     color = "Continent", -->
+
 <!--     fill = "Continent" -->
+
 <!--   ) + -->
+
 <!--   theme_minimal(base_size = 12) + -->
+
 <!--   theme( -->
+
 <!--     plot.title = element_text(face = "bold"), -->
+
 <!--     legend.position = "right" -->
+
 <!--   ) -->
+
 <!-- ``` -->
 
 <!-- ### Snapshot and Tables {.tabset width="50%"} -->
 
-
 <!-- #### Female Leadership by Regime Type -->
 
 <!-- ```{r} -->
+
 <!-- female_regime |> -->
+
 <!--   rename(`Regime Category` = regime_category) |> -->
+
 <!--   gt() |> -->
+
 <!--   tab_header( -->
+
 <!--     title = "Female Leadership by Regime Type", -->
+
 <!--     subtitle = "Top nonzero categories" -->
+
 <!--   ) |> -->
+
 <!--   fmt_percent(columns = `Female Leader Share`, decimals = 1) |> -->
+
 <!--   tab_style( -->
+
 <!--     style = list( -->
+
 <!--       cell_fill(color = "#18bc9c"), -->
+
 <!--       cell_text(color = "white", weight = "bold") -->
+
 <!--     ), -->
+
 <!--     locations = cells_column_labels() -->
+
 <!--   ) |> -->
+
 <!--   tab_options( -->
+
 <!--     table.width = pct(100), -->
+
 <!--     table.font.size = px(11), -->
+
 <!--     data_row.padding = px(3) -->
+
 <!--   ) |> -->
+
 <!--   opt_stylize(style = 1) -->
+
 <!-- ``` -->
 
 <!-- #### Female Leadership by Election -->
 
 <!-- ```{r} -->
+
 <!-- female_election |> -->
+
 <!--   rename(`Election System` = election_system) |> -->
+
 <!--   gt() |> -->
+
 <!--   tab_header( -->
+
 <!--     title = "Female Leadership by Election System", -->
+
 <!--     subtitle = "Top nonzero categories" -->
+
 <!--   ) |> -->
+
 <!--   fmt_percent(columns = `Female Leader Share`, decimals = 1) |> -->
+
 <!--   tab_style( -->
+
 <!--     style = list( -->
+
 <!--       cell_fill(color = "#18bc9c"), -->
+
 <!--       cell_text(color = "white", weight = "bold") -->
+
 <!--     ), -->
+
 <!--     locations = cells_column_labels() -->
+
 <!--   ) |> -->
+
 <!--   tab_options( -->
+
 <!--     table.width = pct(100), -->
+
 <!--     table.font.size = px(11), -->
+
 <!--     data_row.padding = px(3) -->
+
 <!--   ) |> -->
+
 <!--   opt_stylize(style = 1) -->
+
 <!-- ``` -->
-
-
-
 
 ```{r}
 #| fig-height: 4.4
@@ -359,47 +424,85 @@ anim <- animate(
 <!-- ### GDP by Female Leadership -->
 
 <!-- ```{r} -->
+
 <!-- #| fig-height: 4.4 -->
 
 <!-- female_growth |> -->
-<!--   mutate( -->
-<!--     female_leader = if_else(female_leader, "Female Leader", "No Female Leader"), -->
-<!--     year = factor(year) -->
-<!--   ) |> -->
-<!--   ggplot(aes( -->
-<!--     x = gdp_growth, -->
-<!--     y = year, -->
-<!--     fill = female_leader -->
-<!--   )) + -->
-<!--   geom_density_ridges( -->
-<!--     alpha = 0.65, -->
-<!--     color = "white", -->
-<!--     scale = 0.95, -->
-<!--     rel_min_height = 0.01 -->
-<!--   ) + -->
-<!--   scale_x_continuous( -->
-<!--     limits = c(-15, 20), -->
-<!--     labels = label_number(suffix = "%") -->
-<!--   ) + -->
-<!--   scale_fill_manual(values = c( -->
-<!--     "No Female Leader" = "#457B9D", -->
-<!--     "Female Leader" = "#F4A261" -->
-<!--   )) + -->
-<!--   labs( -->
-<!--     title = "GDP Growth by Female Leadership Status", -->
-<!--     subtitle = "2015–2020", -->
-<!--     x = "GDP Growth Rate", -->
-<!--     y = NULL, -->
-<!--     fill = NULL -->
-<!--   ) + -->
-<!--   theme_ridges(font_size = 12, grid = TRUE) + -->
-<!--   theme( -->
-<!--     legend.position = "top", -->
-<!--     plot.title = element_text(face = "bold") -->
-<!--   ) -->
-<!-- ``` -->
 
-## GDP Model
+<!--   mutate( -->
+
+<!--     female_leader = if_else(female_leader, "Female Leader", "No Female Leader"), -->
+
+<!--     year = factor(year) -->
+
+<!--   ) |> -->
+
+<!--   ggplot(aes( -->
+
+<!--     x = gdp_growth, -->
+
+<!--     y = year, -->
+
+<!--     fill = female_leader -->
+
+<!--   )) + -->
+
+<!--   geom_density_ridges( -->
+
+<!--     alpha = 0.65, -->
+
+<!--     color = "white", -->
+
+<!--     scale = 0.95, -->
+
+<!--     rel_min_height = 0.01 -->
+
+<!--   ) + -->
+
+<!--   scale_x_continuous( -->
+
+<!--     limits = c(-15, 20), -->
+
+<!--     labels = label_number(suffix = "%") -->
+
+<!--   ) + -->
+
+<!--   scale_fill_manual(values = c( -->
+
+<!--     "No Female Leader" = "#457B9D", -->
+
+<!--     "Female Leader" = "#F4A261" -->
+
+<!--   )) + -->
+
+<!--   labs( -->
+
+<!--     title = "GDP Growth by Female Leadership Status", -->
+
+<!--     subtitle = "2015–2020", -->
+
+<!--     x = "GDP Growth Rate", -->
+
+<!--     y = NULL, -->
+
+<!--     fill = NULL -->
+
+<!--   ) + -->
+
+<!--   theme_ridges(font_size = 12, grid = TRUE) + -->
+
+<!--   theme( -->
+
+<!--     legend.position = "top", -->
+
+<!--     plot.title = element_text(face = "bold") -->
+
+<!--   ) -->
+
+<!-- ``` -->
+##
+
+### GDP Model {.tabset}
 
 
 ```{r}
@@ -434,7 +537,6 @@ model_data |>
     legend.position = "none"
   )
 ```
-
 
 ```{r}
 #| title: Model Coefficients
@@ -522,7 +624,14 @@ tab_source_note(
   source_note = "Finding: Democracy predicts higher GDP, but unemployment is linked to lower GDP, especially in democracies."
 )
 ```
-## GDP World Map    
+
+###
+```{r}
+knitr::include_graphics("gdp_growth_animation.gif")
+```
+
+## GDP World Map
+
 ```{r leaflet-map}
 library(leaflet)
 library(leaflet.extras)
@@ -553,7 +662,10 @@ pal <- colorNumeric(
   na.color = "#cccccc"
 )
 
-leaflet(map_joined) |>
+leaflet(map_joined,
+        options = leafletOptions(
+    worldCopyJump = TRUE,
+    minZoom = 2)) |>
   addProviderTiles(providers$CartoDB.Positron) |>
   addPolygons(
     fillColor = ~pal(gdp_per_capita_ppp),
@@ -582,6 +694,7 @@ leaflet(map_joined) |>
   )|>
   setView(lng = 0, lat = 20, zoom = 2)
 ```
+
 # Single Country
 
 ## Most Unstable Countries
@@ -633,6 +746,62 @@ top_regime_plot |>
 ## Thailand
 
 Thailand has been flagged the most politically unstable country in our data. We are going zoom in on the economic fluctuations Thailand experienced and look at potential factors for their situation
-```{r show-gif}
-knitr::include_graphics("gdp_growth_animation.gif")
+
+
+```{r}
+library(tidyverse)
+library(plotly)
+
+# Load government spending data
+spending <- read.csv("ThailandSpendingClean.csv")
+
+# Join Thailand regime data with spending data
+thailand <- masterSet %>%
+  filter(country_name == "Thailand") %>%
+  left_join(spending, by = "year")
+
+# Identify years with regime changes
+regime_changes <- thailand %>%
+  arrange(year) %>%
+  mutate(prev_regime = lag(regime_category)) %>%
+  filter(regime_category != prev_regime, !is.na(prev_regime))
+
+# Plot government spending with regime-change markers
+thailand %>%
+  plot_ly(
+    x = ~year,
+    y = ~govt_spending,
+    type = "scatter",
+    mode = "lines+markers",
+    line = list(color = "#2A9D8F", width = 2),
+    marker = list(color = "#2A9D8F", size = 5),
+    name = "Govt Spending",
+    hovertemplate = paste(
+      "<b>Year:</b> %{x}<br>",
+      "<b>Govt Spending:</b> %{y:.1f}% of GDP<br>",
+      "<extra></extra>"
+    )
+  ) %>%
+  add_segments(
+    data = regime_changes,
+    x = ~year,
+    xend = ~year,
+    y = min(thailand$govt_spending, na.rm = TRUE),
+    yend = max(thailand$govt_spending, na.rm = TRUE),
+    line = list(color = "#E63946", dash = "dot", width = 2),
+    name = "Regime Change",
+    hovertemplate = paste(
+      "<b>Regime change:</b> %{x}<br>",
+      "<extra></extra>"
+    )
+  ) %>%
+  layout(
+    title = list(
+      text = "Thailand Government Spending & Regime Changes Over Time",
+      font = list(size = 16)
+    ),
+    xaxis = list(title = "Year"),
+    yaxis = list(title = "Government Spending (% of GDP)"),
+    showlegend = TRUE
+  )
 ```
