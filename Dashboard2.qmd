@@ -4,7 +4,6 @@ format:
   dashboard:
     theme: flatly
     orientation: columns
-    embed-resources: true
     logo: "https://raw.githubusercontent.com/twbs/icons/main/icons/globe-americas.svg"
     nav-buttons:
       - icon: github
@@ -13,6 +12,7 @@ format:
         href: https://www.linkedin.com/
       - icon: instagram
         href: https://www.instagram.com/hadleywickham/
+server: shiny
 execute:
   echo: false
   warning: false
@@ -31,6 +31,7 @@ library(gganimate)
 library(gifski)
 library(leaflet)
 library(rnaturalearth)
+library(base64enc)
 ```
 
 ```{r data-prep}
@@ -627,74 +628,120 @@ tab_source_note(
 
 ###
 ```{r}
-knitr::include_graphics("gdp_growth_animation.gif")
+shiny::tags$img(
+  src   = base64enc::dataURI(file = "gdp_growth_animation.gif", mime = "image/gif"),
+  width = "100%"
+)
 ```
 
 ## GDP World Map
 
 ```{r leaflet-map}
+#| title: "GDP per Capita (PPP) by Country"
+
+library(shiny)
 library(leaflet)
-library(leaflet.extras)
 
-# Get latest year available per country
-map_data <- masterSet |>
-  filter(!is.na(gdp_per_capita_ppp), !is.na(country_code)) |>
-  group_by(country_name, country_code) |>
-  slice_max(year, n = 1) |>
-  ungroup() |>
-  mutate(
-    is_democracy = as.character(is_democracy),
-    democracy_label = case_when(
-      is_democracy == "TRUE" ~ "Democracy",
-      is_democracy == "FALSE" ~ "Non-Democracy",
-      TRUE ~ "Unknown"
-    )
-  )
-
-world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
-
-map_joined <- world |>
-  left_join(map_data, by = c("iso_a3" = "country_code"))
-
-pal <- colorNumeric(
-  palette = "YlOrRd",
-  domain = map_joined$gdp_per_capita_ppp,
-  na.color = "#cccccc"
+sliderInput(
+  inputId  = "year_select",
+  label    = "Select Year:",
+  min      = 1980,
+  max      = 2020,
+  value    = 2019,
+  step     = 1,
+  sep      = "",
+  width    = "100%",
+  animate  = animationOptions(interval = 800, loop = FALSE)
 )
 
-leaflet(map_joined,
-        options = leafletOptions(
-    worldCopyJump = TRUE,
-    minZoom = 2)) |>
-  addProviderTiles(providers$CartoDB.Positron) |>
-  addPolygons(
-    fillColor = ~pal(gdp_per_capita_ppp),
-    fillOpacity = 0.8,
-    color = "white",
-    weight = 0.5,
-    label = ~paste0(
-      "<b>", name, "</b><br>",
-      "GDP per Capita (PPP): $", format(round(gdp_per_capita_ppp), big.mark = ","), "<br>",
-      "Regime: ", democracy_label, "<br>",
-      "Year: ", year
-    ) |> lapply(htmltools::HTML),
-    highlightOptions = highlightOptions(
-      weight = 2,
-      color = "#2A9D8F",
-      fillOpacity = 0.9,
-      bringToFront = TRUE
-    )
-  ) |>
-  addLegend(
-    pal = pal,
-    values = ~gdp_per_capita_ppp,
-    title = "GDP per Capita (PPP)",
-    position = "bottomright",
-    labFormat = labelFormat(prefix = "$", big.mark = ",")
-  )|>
-  setView(lng = 0, lat = 20, zoom = 2)
+leafletOutput("gdp_map", height = "450px")
 ```
 
+```{r leaflet-server}
+#| context: server
+
+
+library(leaflet)
+library(rnaturalearth)
+library(dplyr)
+library(readr)
+
+# I had to readd the master set and the libraries beacues the map wouldn't 
+# show up if i didn't. 
+
+masterSet <- readr::read_csv("masterSet.csv", show_col_types = FALSE) |>
+  mutate(
+    year = parse_number(as.character(year)),
+    across(
+      any_of(c("is_democracy", "is_female_monarch", "is_female_president")),
+      ~ case_when(
+          as.character(.x) %in% c("TRUE","True","true","1","Yes","yes") ~ TRUE,
+          as.character(.x) %in% c("FALSE","False","false","0","No","no") ~ FALSE,
+          TRUE ~ NA
+        )
+    )
+  )
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+
+output$gdp_map <- renderLeaflet({
+
+  selected_year <- input$year_select
+
+  map_data <- masterSet |>
+    filter(
+      !is.na(gdp_per_capita_ppp),
+      !is.na(country_code),
+      year == selected_year
+    ) |>
+    mutate(
+      is_democracy    = as.character(is_democracy),
+      democracy_label = case_when(
+        is_democracy == "TRUE"  ~ "Democracy",
+        is_democracy == "FALSE" ~ "Non-Democracy",
+        TRUE                    ~ "Unknown"
+      )
+    )
+
+  map_joined <- world |>
+    left_join(map_data, by = c("iso_a3" = "country_code"))
+
+  pal <- colorNumeric(
+    palette  = "YlOrRd",
+    domain   = map_joined$gdp_per_capita_ppp,
+    na.color = "#cccccc"
+  )
+
+  leaflet(map_joined,
+          options = leafletOptions(worldCopyJump = TRUE, minZoom = 2)) |>
+    addProviderTiles(providers$CartoDB.Positron) |>
+    addPolygons(
+      fillColor   = ~pal(gdp_per_capita_ppp),
+      fillOpacity = 0.8,
+      color       = "white",
+      weight      = 0.5,
+      label = ~paste0(
+        "<b>", name, "</b><br>",
+        "GDP per Capita (PPP): $", format(round(gdp_per_capita_ppp), big.mark = ","), "<br>",
+        "Regime: ", democracy_label, "<br>",
+        "Year: ", selected_year
+      ) |> lapply(htmltools::HTML),
+      highlightOptions = highlightOptions(
+        weight       = 2,
+        color        = "#2A9D8F",
+        fillOpacity  = 0.9,
+        bringToFront = TRUE
+      )
+    ) |>
+    addLegend(
+      pal       = pal,
+      values    = ~gdp_per_capita_ppp,
+      title     = "GDP per Capita (PPP)",
+      position  = "bottomright",
+      labFormat = labelFormat(prefix = "$", big.mark = ",")
+    ) |>
+    setView(lng = 0, lat = 20, zoom = 2)
+})
+```
 # Single Country
 
 ## Most Unstable Countries
